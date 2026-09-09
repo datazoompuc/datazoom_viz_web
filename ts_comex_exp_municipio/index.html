@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Zoom Amazônia — COMEX Exportação Municipal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="apppanel">
+  <div class="menucol">
+    <h2 class="plot_name" id="plot_name"></h2>
+    <p class="plot_desc" id="plot_desc"></p>
+    <hr>
+
+    <p class="vars" id="label_view_name"></p>
+    <div class="view-toggle" id="view-toggle">
+      <button class="view-btn active" id="view-ranking" data-view="ranking"></button>
+      <button class="view-btn" id="view-composition" data-view="composition"></button>
+      <button class="view-btn" id="view-change" data-view="change"></button>
+      <button class="view-btn" id="view-trends" data-view="trends"></button>
+      <button class="view-btn" id="view-explore" data-view="explore"></button>
+      <button class="view-btn" id="view-municomp" data-view="municomp"></button>
+      <button class="view-btn" id="view-prodrank" data-view="prodrank"></button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="var_selec_group hidden" id="change-group">
+      <label id="label_state" for="change-state-select"></label>
+      <select id="change-state-select"></select>
+      <div class="spacer"></div>
+      <div class="change-years-row">
+        <div class="change-year-field">
+          <label id="label_year_a" for="change-year-a"></label>
+          <select id="change-year-a"></select>
+        </div>
+        <div class="change-year-field">
+          <label id="label_year_b" for="change-year-b"></label>
+          <select id="change-year-b"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="var_selec_group slider-inline">
+      <label id="label_year" for="year-slider"></label>
+      <div class="sparkline-wrap">
+        <svg id="year-sparkline" viewBox="0 0 260 40" preserveAspectRatio="none">
+          <path id="spark-area" class="spark-area"></path>
+          <path id="spark-line" class="spark-line"></path>
+          <line id="spark-guide" class="spark-guide" y1="0" y2="40"></line>
+          <line id="spark-hover-line" class="spark-hover-line" y1="0" y2="40"></line>
+          <circle id="spark-marker" class="spark-marker" r="4"></circle>
+          <circle id="spark-hover-marker" class="spark-hover-marker" r="4"></circle>
+        </svg>
+        <div id="spark-tooltip" class="spark-tooltip"></div>
+      </div>
+      <div class="slider-row">
+        <button id="play-btn" class="icon-btn" title="Play/Pause">
+          <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        </button>
+        <input type="range" id="year-slider" step="1">
+        <span id="year-value" class="year-value"></span>
+      </div>
+    </div>
+
+    <div class="var_selec_group hidden" id="municomp-group">
+      <label id="label_municomp_select" for="municomp-select"></label>
+      <select id="municomp-select"></select>
+    </div>
+
+    <div class="var_selec_group hidden" id="prodrank-group">
+      <label id="label_prodrank_select" for="prodrank-curated-select"></label>
+      <select id="prodrank-curated-select"></select>
+      <div class="spacer"></div>
+      <label id="label_prodrank_search" for="prodrank-input" class="prodrank-search-label"></label>
+      <input type="text" id="prodrank-input" list="prodrank-datalist" autocomplete="off">
+      <datalist id="prodrank-datalist"></datalist>
+      <p class="prodrank-full-label" id="prodrank-full-label"></p>
+    </div>
+
+    <div class="var_selec_group hidden" id="explore-group">
+      <label id="label_explore_munis" for="explore-munis-select"></label>
+      <select id="explore-munis-select" multiple size="10"></select>
+      <p class="explore-hint" id="explore-hint"></p>
+      <div class="spacer"></div>
+      <label class="switch-row">
+        <input type="checkbox" id="explore-log">
+        <span id="label_log_scale"></span>
+      </label>
+      <div class="spacer"></div>
+      <label class="switch-row">
+        <input type="checkbox" id="explore-index">
+        <span id="label_index_first"></span>
+      </label>
+    </div>
+
+    <div class="spacer"></div>
+    <div class="var_selec_group" id="topn-group">
+      <p class="vars" id="label_topn_name"></p>
+      <select id="topn-select">
+        <option value="10">10</option>
+        <option value="15" selected>15</option>
+        <option value="20">20</option>
+        <option value="30">30</option>
+      </select>
+    </div>
+
+    <div class="menucol-logo" role="img" aria-label="Data Zoom"></div>
+  </div>
+
+  <div class="plotcol">
+    <button id="lang-toggle" class="lang-toggle-corner">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+      <span id="lang-toggle-label"></span>
+    </button>
+    <div class="plot-title" id="plot-title"></div>
+    <div class="plot-subtitle" id="plot-subtitle"></div>
+
+    <div class="chart-wrap">
+      <div id="spinner" class="spinner"></div>
+
+      <div id="ranking-panel" class="ranking-panel">
+        <div class="ranking-header">
+          <span id="ranking-axis-label" class="ranking-axis-label"></span>
+          <span id="region-total-label" class="region-total-label"></span>
+        </div>
+        <div id="ranking-rows" class="ranking-rows"></div>
+        <div id="ranking-tooltip" class="chart-tooltip"></div>
+      </div>
+
+      <div id="composition-panel" class="composition-panel hidden">
+        <div id="composition-chart-area" class="composition-chart-area">
+          <svg id="composition-svg" class="composition-svg" viewBox="0 0 1000 520" preserveAspectRatio="none"></svg>
+          <div id="composition-tooltip" class="chart-tooltip"></div>
+        </div>
+        <div id="composition-legend" class="composition-legend"></div>
+      </div>
+
+      <div id="change-panel" class="change-panel hidden">
+        <div class="change-header">
+          <span id="change-axis-label" class="ranking-axis-label"></span>
+          <div class="change-legend">
+            <span class="change-legend-chip"><span class="change-legend-dot change-legend-dot-a"></span><span id="change-legend-a-label"></span></span>
+            <span class="change-legend-chip"><span class="change-legend-dot change-legend-dot-b"></span><span id="change-legend-b-label"></span></span>
+          </div>
+        </div>
+        <div class="change-axis">
+          <div class="change-col-label"></div>
+          <div class="change-col-track">
+            <span id="change-axis-min"></span>
+            <span id="change-axis-max"></span>
+          </div>
+          <div class="change-col-delta"></div>
+        </div>
+        <div class="change-scroll">
+          <div id="change-rows"></div>
+        </div>
+        <div id="change-tooltip" class="chart-tooltip"></div>
+      </div>
+
+      <div id="trends-panel" class="trends-panel hidden">
+        <div id="trends-grid" class="trends-grid"></div>
+      </div>
+
+      <div id="explore-panel" class="composition-panel hidden">
+        <div id="explore-chart-area" class="composition-chart-area">
+          <svg id="explore-svg" class="composition-svg" viewBox="0 0 1000 520" preserveAspectRatio="none"></svg>
+          <div id="explore-tooltip" class="chart-tooltip"></div>
+        </div>
+        <div id="explore-legend" class="composition-legend"></div>
+      </div>
+
+      <div id="municomp-panel" class="composition-panel hidden">
+        <div id="municomp-chart-area" class="composition-chart-area">
+          <svg id="municomp-svg" class="composition-svg" viewBox="0 0 1000 520" preserveAspectRatio="none"></svg>
+          <div id="municomp-tooltip" class="chart-tooltip"></div>
+        </div>
+        <div id="municomp-legend" class="composition-legend"></div>
+      </div>
+
+      <div id="prodrank-panel" class="ranking-panel hidden">
+        <div class="ranking-header">
+          <span id="prodrank-axis-label" class="ranking-axis-label"></span>
+          <span id="prodrank-total-label" class="region-total-label"></span>
+        </div>
+        <div id="prodrank-rows" class="ranking-rows"></div>
+        <div id="prodrank-tooltip" class="chart-tooltip"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
