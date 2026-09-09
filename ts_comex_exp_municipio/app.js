@@ -51,10 +51,10 @@
       label_log_scale: "Escala logarítmica",
       label_index_first: "Indexado ao ano inicial (=100)",
       explore_no_base: "sem exportação em {year}",
-      view_municomp: "Município",
-      title_municomp: "Composição das exportações por município",
-      subtitle_municomp: "Categorias de produto exportadas pelo município selecionado, 1997–2025 — passe o mouse para ver o detalhamento",
-      label_municomp_select: "Município",
+      title_composition_muni: "Composição das exportações — {municipio}",
+      subtitle_composition_muni: "Categorias de produto exportadas, 1997–2025 — passe o mouse para ver o detalhamento",
+      label_composition_scope: "Escopo",
+      composition_scope_region: "Toda a Amazônia Legal",
       view_prodrank: "Produto",
       title_prodrank: "Ranking de municípios por produto",
       subtitle_prodrank: "Municípios que mais exportam o produto selecionado, por ano",
@@ -106,10 +106,10 @@
       label_log_scale: "Log scale",
       label_index_first: "Indexed to first year (=100)",
       explore_no_base: "no exports in {year}",
-      view_municomp: "Municipality",
-      title_municomp: "Municipality export composition",
-      subtitle_municomp: "Product categories exported by the selected municipality, 1997–2025 — hover to see the breakdown",
-      label_municomp_select: "Municipality",
+      title_composition_muni: "Export composition — {municipio}",
+      subtitle_composition_muni: "Product categories exported, 1997–2025 — hover to see the breakdown",
+      label_composition_scope: "Scope",
+      composition_scope_region: "Whole Legal Amazon",
       view_prodrank: "Product",
       title_prodrank: "Municipality ranking by product",
       subtitle_prodrank: "Municipalities exporting the most of the selected product, by year",
@@ -147,7 +147,7 @@
     lang: "pt",
     year: null,
     topN: 15,
-    view: "ranking", // "ranking" | "composition" | "change" | "trends" | "explore" | "municomp" | "prodrank"
+    view: "ranking", // "ranking" | "composition" | "change" | "trends" | "explore" | "prodrank"
     playing: false,
     playTimer: null,
     changeState: null, // UF filter for the change (dumbbell) view
@@ -156,7 +156,7 @@
     exploreMunis: [], // hand-picked municipalities for the explore view
     exploreLog: false,
     exploreIndex: false,
-    municompMuni: null, // selected municipality for the per-municipality composition view
+    compositionScope: null, // null = whole-region composition; a municipio name = that place's own composition
     prodrankCode: null // selected SH4 product code for the product ranking view
   };
 
@@ -168,7 +168,7 @@
   let municipioMeta; // municipio -> { uf }
   let ufList; // sorted distinct UF codes
   let muniCompositionRowsByMuni; // municipio -> [{produto, ano, valor}], only municipalities with any exports
-  let muniCompositionSeries; // current municompMuni's series, same shape as compositionSeries
+  let activeCompositionSeries; // whichever series (region or a municipio) is currently rendered, for the hover handler
 
   // Product ranking (SH4-level, ~1,142 specific products vs. the 22 broad
   // SEC categories used elsewhere) is fetched lazily — it's ~1MB, by far
@@ -200,6 +200,7 @@
     totalsByYear = groupByYear(municipalityTotals);
     regionTotalByYear = new Map(regionTotals.map((r) => [r.ano, r.valor]));
     compositionSeries = buildCompositionSeries(composition, dictionary);
+    activeCompositionSeries = compositionSeries;
     ({ totalsByMunicipio, municipioMeta, ufList } = buildMunicipioIndex(municipalityTotals));
     muniCompositionRowsByMuni = buildMuniCompositionIndex(muniComposition);
 
@@ -208,7 +209,6 @@
     initSparklineHover();
     initCompositionHover();
     initExploreHover();
-    initMuniCompositionHover();
     setView(state.view);
     document.getElementById("spinner").classList.add("hidden");
   }).catch((err) => {
@@ -410,7 +410,7 @@
     const qMunis = params.get("munis");
     const qLog = params.get("log");
     const qIndex = params.get("index");
-    const qMuniComp = params.get("municomp");
+    const qCompScope = params.get("compscope");
     const qProdrank = params.get("prodrank");
 
     state.lang = qLang === "en" ? "en" : "pt";
@@ -418,7 +418,7 @@
       ? qYear
       : dictionary.year_final;
     state.topN = [10, 15, 20, 30].includes(qTopN) ? qTopN : 15;
-    state.view = ["ranking", "composition", "change", "trends", "explore", "municomp", "prodrank"].includes(qView) ? qView : "ranking";
+    state.view = ["ranking", "composition", "change", "trends", "explore", "prodrank"].includes(qView) ? qView : "ranking";
     state.changeState = ufList.includes(qState) ? qState : ufList[0];
     state.yearA = Number.isFinite(qYearA) && qYearA >= dictionary.year_inicio && qYearA <= dictionary.year_final
       ? qYearA
@@ -430,9 +430,7 @@
     state.exploreMunis = decodedMunis.length ? decodedMunis : computeTrendMunicipalities(5);
     state.exploreLog = qLog === "1";
     state.exploreIndex = qIndex === "1";
-    state.municompMuni = qMuniComp && muniCompositionRowsByMuni.has(qMuniComp)
-      ? qMuniComp
-      : computeTrendMunicipalities(municipioMeta.size).find((m) => muniCompositionRowsByMuni.has(m));
+    state.compositionScope = qCompScope && muniCompositionRowsByMuni.has(qCompScope) ? qCompScope : null;
     // Validated once product_ranking.json is lazy-loaded (ensureProductRankingLoaded)
     // — the raw query value is kept provisionally so a shared URL still resolves.
     state.prodrankCode = qProdrank || null;
@@ -450,7 +448,7 @@
     params.set("munis", state.exploreMunis.join("|"));
     params.set("log", state.exploreLog ? "1" : "0");
     params.set("index", state.exploreIndex ? "1" : "0");
-    params.set("municomp", state.municompMuni || "");
+    params.set("compscope", state.compositionScope || "");
     params.set("prodrank", state.prodrankCode || "");
     history.replaceState(null, "", `?${params.toString()}`);
   }
@@ -491,7 +489,6 @@
     document.getElementById("view-change").addEventListener("click", () => setView("change"));
     document.getElementById("view-trends").addEventListener("click", () => setView("trends"));
     document.getElementById("view-explore").addEventListener("click", () => setView("explore"));
-    document.getElementById("view-municomp").addEventListener("click", () => setView("municomp"));
     document.getElementById("view-prodrank").addEventListener("click", () => setView("prodrank"));
 
     const prodrankInput = document.getElementById("prodrank-input");
@@ -516,19 +513,23 @@
       renderProdRank();
     });
 
-    const municompSelect = document.getElementById("municomp-select");
-    const municompMunis = computeTrendMunicipalities(municipioMeta.size).filter((m) => muniCompositionRowsByMuni.has(m));
-    for (const municipio of municompMunis) {
+    const compositionScopeSelect = document.getElementById("composition-scope-select");
+    const regionOpt = document.createElement("option");
+    regionOpt.value = "";
+    regionOpt.textContent = I18N[state.lang].composition_scope_region;
+    compositionScopeSelect.appendChild(regionOpt);
+    const compositionScopeMunis = computeTrendMunicipalities(municipioMeta.size).filter((m) => muniCompositionRowsByMuni.has(m));
+    for (const municipio of compositionScopeMunis) {
       const opt = document.createElement("option");
       opt.value = municipio;
       opt.textContent = municipio;
-      municompSelect.appendChild(opt);
+      compositionScopeSelect.appendChild(opt);
     }
-    municompSelect.value = state.municompMuni;
-    municompSelect.addEventListener("change", (e) => {
-      state.municompMuni = e.target.value;
+    compositionScopeSelect.value = state.compositionScope || "";
+    compositionScopeSelect.addEventListener("change", (e) => {
+      state.compositionScope = e.target.value || null;
       updateUrl();
-      renderMuniComposition();
+      render(); // title is scope-dependent ("Composição — {municipio}"), not just the chart
     });
 
     const munisSelect = document.getElementById("explore-munis-select");
@@ -608,14 +609,12 @@
     document.getElementById("view-change").classList.toggle("active", view === "change");
     document.getElementById("view-trends").classList.toggle("active", view === "trends");
     document.getElementById("view-explore").classList.toggle("active", view === "explore");
-    document.getElementById("view-municomp").classList.toggle("active", view === "municomp");
     document.getElementById("view-prodrank").classList.toggle("active", view === "prodrank");
     document.getElementById("ranking-panel").classList.toggle("hidden", view !== "ranking");
     document.getElementById("composition-panel").classList.toggle("hidden", view !== "composition");
     document.getElementById("change-panel").classList.toggle("hidden", view !== "change");
     document.getElementById("trends-panel").classList.toggle("hidden", view !== "trends");
     document.getElementById("explore-panel").classList.toggle("hidden", view !== "explore");
-    document.getElementById("municomp-panel").classList.toggle("hidden", view !== "municomp");
     document.getElementById("prodrank-panel").classList.toggle("hidden", view !== "prodrank");
     // topn-group is shared between ranking (per-year top-N), trends
     // (all-time top-N), and prodrank (per-year top-N for one product) —
@@ -623,7 +622,7 @@
     document.getElementById("topn-group").classList.toggle("hidden", view !== "ranking" && view !== "trends" && view !== "prodrank");
     document.getElementById("change-group").classList.toggle("hidden", view !== "change");
     document.getElementById("explore-group").classList.toggle("hidden", view !== "explore");
-    document.getElementById("municomp-group").classList.toggle("hidden", view !== "municomp");
+    document.getElementById("composition-scope-group").classList.toggle("hidden", view !== "composition");
     document.getElementById("prodrank-group").classList.toggle("hidden", view !== "prodrank");
     document.querySelector(".slider-inline").classList.toggle("hidden", view === "change");
     updateUrl();
@@ -689,8 +688,6 @@
       updateTrendsMarkers();
     } else if (state.view === "explore") {
       updateExploreGuide();
-    } else if (state.view === "municomp") {
-      updateMuniCompositionGuide();
     } else if (state.view === "prodrank") {
       renderProdRank();
     } else {
@@ -753,7 +750,6 @@
     document.getElementById("view-change").textContent = t.view_change;
     document.getElementById("view-trends").textContent = t.view_trends;
     document.getElementById("view-explore").textContent = t.view_explore;
-    document.getElementById("view-municomp").textContent = t.view_municomp;
     document.getElementById("view-prodrank").textContent = t.view_prodrank;
     document.getElementById("ranking-axis-label").textContent = t.ranking_axis_label;
     document.getElementById("prodrank-axis-label").textContent = t.ranking_axis_label;
@@ -765,15 +761,16 @@
     document.getElementById("explore-hint").textContent = t.explore_hint;
     document.getElementById("label_log_scale").textContent = t.label_log_scale;
     document.getElementById("label_index_first").textContent = t.label_index_first;
-    document.getElementById("label_municomp_select").textContent = t.label_municomp_select;
+    document.getElementById("label_composition_scope").textContent = t.label_composition_scope;
+    document.getElementById("composition-scope-select").options[0].textContent = t.composition_scope_region;
     document.getElementById("label_prodrank_select").textContent = t.label_prodrank_select;
     document.getElementById("label_prodrank_search").textContent = t.label_prodrank_search;
     document.getElementById("lang-toggle-label").textContent = t.btn_lang;
     // Repopulate the datalist too — its option labels are language-specific.
     if (productRanking) populateProdrankPicker();
 
-    const titles = { ranking: t.title_ranking, composition: t.title_composition, change: t.title_change, trends: t.title_trends, explore: t.title_explore, municomp: t.title_municomp, prodrank: t.title_prodrank };
-    const subtitles = { ranking: t.subtitle_ranking, composition: t.subtitle_composition, change: t.subtitle_change, trends: t.subtitle_trends, explore: t.subtitle_explore, municomp: t.subtitle_municomp, prodrank: t.subtitle_prodrank };
+    const titles = { ranking: t.title_ranking, composition: state.compositionScope ? t.title_composition_muni.replace("{municipio}", state.compositionScope) : t.title_composition, change: t.title_change, trends: t.title_trends, explore: t.title_explore, prodrank: t.title_prodrank };
+    const subtitles = { ranking: t.subtitle_ranking, composition: state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition, change: t.subtitle_change, trends: t.subtitle_trends, explore: t.subtitle_explore, prodrank: t.subtitle_prodrank };
     document.getElementById("plot-title").textContent = titles[state.view];
     document.getElementById("plot-subtitle").textContent = subtitles[state.view];
 
@@ -790,8 +787,6 @@
       renderTrends();
     } else if (state.view === "explore") {
       renderExplore();
-    } else if (state.view === "municomp") {
-      renderMuniComposition();
     } else if (state.view === "prodrank") {
       renderProdRank();
     } else {
@@ -969,30 +964,22 @@
     return clause.length > 60 ? clause.slice(0, 57).trimEnd() + "…" : clause;
   }
 
-  // renderComposition (region-wide) and renderMuniComposition (one
-  // municipality) are the same stacked-area chart over a different series —
-  // shared here as renderStackedComposition/updateStackedGuide/
-  // renderStackedLegend/initStackedHover, parameterized by which series and
-  // which set of DOM ids to draw into. Unlike composition vs. explore
-  // (different chart shapes), these two are genuinely identical logic, so
-  // this is a real shared implementation rather than two copies.
+  // One view, two scopes: region-wide (compositionScope === null, using the
+  // precomputed compositionSeries) or a single municipality (recomputed from
+  // muniCompositionRowsByMuni on each selection, since which categories rank
+  // in someone's own top-8 depends on that place, not the region). Same
+  // stacked-area chart either way, via renderStackedComposition/
+  // updateStackedGuide/renderStackedLegend/initStackedHover.
 
   function renderComposition() {
-    renderStackedComposition(compositionSeries, { svg: "composition-svg", guide: "comp-guide", legend: "composition-legend" });
+    activeCompositionSeries = state.compositionScope
+      ? buildCompositionSeries(muniCompositionRowsByMuni.get(state.compositionScope) || [], dictionary)
+      : compositionSeries;
+    renderStackedComposition(activeCompositionSeries, { svg: "composition-svg", guide: "comp-guide", legend: "composition-legend" });
   }
 
   function updateCompositionGuide() {
     updateStackedGuide("comp-guide");
-  }
-
-  function renderMuniComposition() {
-    const rows = muniCompositionRowsByMuni.get(state.municompMuni) || [];
-    muniCompositionSeries = buildCompositionSeries(rows, dictionary);
-    renderStackedComposition(muniCompositionSeries, { svg: "municomp-svg", guide: "municomp-guide", legend: "municomp-legend" });
-  }
-
-  function updateMuniCompositionGuide() {
-    updateStackedGuide("municomp-guide");
   }
 
   function renderStackedComposition(series, ids) {
@@ -1091,11 +1078,7 @@
   }
 
   function initCompositionHover() {
-    initStackedHover({ svg: "composition-svg", area: "composition-chart-area", tooltip: "composition-tooltip", view: "composition" }, () => compositionSeries);
-  }
-
-  function initMuniCompositionHover() {
-    initStackedHover({ svg: "municomp-svg", area: "municomp-chart-area", tooltip: "municomp-tooltip", view: "municomp" }, () => muniCompositionSeries);
+    initStackedHover({ svg: "composition-svg", area: "composition-chart-area", tooltip: "composition-tooltip", view: "composition" }, () => activeCompositionSeries);
   }
 
   function initStackedHover(ids, getSeries) {

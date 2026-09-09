@@ -22,7 +22,6 @@
       <button class="view-btn" id="view-change" data-view="change"></button>
       <button class="view-btn" id="view-trends" data-view="trends"></button>
       <button class="view-btn" id="view-explore" data-view="explore"></button>
-      <button class="view-btn" id="view-municomp" data-view="municomp"></button>
       <button class="view-btn" id="view-prodrank" data-view="prodrank"></button>
     </div>
 
@@ -66,9 +65,9 @@
       </div>
     </div>
 
-    <div class="var_selec_group hidden" id="municomp-group">
-      <label id="label_municomp_select" for="municomp-select"></label>
-      <select id="municomp-select"></select>
+    <div class="var_selec_group hidden" id="composition-scope-group">
+      <label id="label_composition_scope" for="composition-scope-select"></label>
+      <select id="composition-scope-select"></select>
     </div>
 
     <div class="var_selec_group hidden" id="prodrank-group">
@@ -171,14 +170,6 @@
           <div id="explore-tooltip" class="chart-tooltip"></div>
         </div>
         <div id="explore-legend" class="composition-legend"></div>
-      </div>
-
-      <div id="municomp-panel" class="composition-panel hidden">
-        <div id="municomp-chart-area" class="composition-chart-area">
-          <svg id="municomp-svg" class="composition-svg" viewBox="0 0 1000 520" preserveAspectRatio="none"></svg>
-          <div id="municomp-tooltip" class="chart-tooltip"></div>
-        </div>
-        <div id="municomp-legend" class="composition-legend"></div>
       </div>
 
       <div id="prodrank-panel" class="ranking-panel hidden">

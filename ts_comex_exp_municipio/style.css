@@ -113,11 +113,6 @@ html, body {
   cursor: pointer;
   font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
-/* 7 buttons in a 3-col grid leaves a lone 7th item on its own row —
-   stretch it full-width instead of leaving two empty cells beside it. */
-.view-toggle .view-btn:nth-child(7):last-child {
-  grid-column: 1 / -1;
-}
 .view-btn.active {
   background: rgba(0, 0, 0, 0.2);
   color: #fff;
@@ -139,7 +134,7 @@ html, body {
 #change-state-select,
 #change-year-a,
 #change-year-b,
-#municomp-select,
+#composition-scope-select,
 #prodrank-curated-select,
 #prodrank-input {
   width: 100%;
