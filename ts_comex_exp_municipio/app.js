@@ -78,12 +78,14 @@
       title_map_ratio: "Floresta vs. outros produtos",
       subtitle_map_forest: "Município colorido pela categoria do seu principal produto compatível com a floresta, por ano",
       subtitle_map_all: "Município colorido pela categoria do seu principal produto exportado, por ano",
-      subtitle_map_ratio: "O principal produto exportado do município é compatível com a floresta?",
+      subtitle_map_ratio: "Compara o produto mais exportado do município com seu produto mais exportado entre os compatíveis com a floresta — qual dos dois é mais característico da Amazônia Legal?",
       map_hint: "Passe o mouse sobre um município para ver detalhes.",
       map_loading: "Carregando mapa…",
       tooltip_municipio: "Município:",
       tooltip_estado: "Estado:",
       tooltip_produto: "Principal produto:",
+      tooltip_produto_geral: "Produto mais exportado (geral):",
+      tooltip_produto_floresta: "Produto mais exportado (floresta):",
       tooltip_categoria: "Categoria:",
       tooltip_valor: "Valor:",
       tooltip_valor_unidade: "% das exportações desse produto na Amazônia Legal vindas deste município",
@@ -157,12 +159,14 @@
       title_map_ratio: "Forest vs. other products",
       subtitle_map_forest: "Municipality colored by its main forest-compatible product's category, by year",
       subtitle_map_all: "Municipality colored by its main exported product's category, by year",
-      subtitle_map_ratio: "Is the municipality's main exported product forest-compatible?",
+      subtitle_map_ratio: "Compares the municipality's overall top export with its top export among forest-compatible goods — which one is more distinctively theirs, region-wide?",
       map_hint: "Hover over a municipality to see details.",
       map_loading: "Loading map…",
       tooltip_municipio: "Municipality:",
       tooltip_estado: "State:",
       tooltip_produto: "Main product:",
+      tooltip_produto_geral: "Top export (overall):",
+      tooltip_produto_floresta: "Top export (forest-compatible):",
       tooltip_categoria: "Category:",
       tooltip_valor: "Value:",
       tooltip_valor_unidade: "% of that product's Legal Amazon exports that came from this municipality",
@@ -690,20 +694,36 @@
     return v.toLocaleString(state.lang === "en" ? "en-US" : "pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
   }
 
-  function mapTooltipHtml(t, municipio, cell, ratioClass) {
+  // Ratio mode's classification compares two *different* calculations —
+  // top product by raw export value overall (cellAll) vs. top product by
+  // raw export value among only the 16 forest-compatible codes
+  // (cellForest) — then compares how distinctive (% of the Legal Amazon's
+  // total for that specific product) each one is. Showing only the
+  // classification label without both halves of that comparison is
+  // exactly what made this mode hard to read: the tooltip is where the
+  // "why" belongs, not just the "what".
+  function mapTooltipHtml(t, municipio, cellAll, cellForest, ratioClass) {
     const rows = [
       `${t.tooltip_municipio} <b>${municipio.nome}</b>`,
       `${t.tooltip_estado} <b>${municipio.uf}</b>`
     ];
     if (state.mapMode === "ratio") {
+      if (!ratioClass) {
+        rows.push(`<i>${t.label_no_data}</i>`);
+        return rows.join("<br>");
+      }
       const label = ratioClass === "same" ? t.ratio_same : ratioClass === "sim" ? t.ratio_sim : t.ratio_nao;
       rows.push(`${t.tooltip_classe} <b>${label}</b>`);
-      if (cell) rows.push(`${t.tooltip_produto} <b>${mapData.produtos[cell.produtoIdx]}</b>`);
-    } else if (cell) {
-      rows.push(`${t.tooltip_produto} <b>${mapData.produtos[cell.produtoIdx]}</b>`);
-      rows.push(`${t.tooltip_categoria} <b>${mapCategoryLabel(cell.categoriaIdx, t)}</b>`);
-      rows.push(`${t.tooltip_valor} <b>${fmtPct(cell.valor)}</b>`);
+      rows.push(`${t.tooltip_produto_geral} <b>${mapData.produtos[cellAll.produtoIdx]}</b> (${fmtPct(cellAll.valor)})`);
+      rows.push(`${t.tooltip_produto_floresta} <b>${mapData.produtos[cellForest.produtoIdx]}</b> (${fmtPct(cellForest.valor)})`);
       rows.push(`<span style="font-size:0.85em;color:var(--muted);">${t.tooltip_valor_unidade}</span>`);
+    } else if (cellAll) {
+      rows.push(`${t.tooltip_produto} <b>${mapData.produtos[cellAll.produtoIdx]}</b>`);
+      rows.push(`${t.tooltip_categoria} <b>${mapCategoryLabel(cellAll.categoriaIdx, t)}</b>`);
+      rows.push(`${t.tooltip_valor} <b>${fmtPct(cellAll.valor)}</b>`);
+      rows.push(`<span style="font-size:0.85em;color:var(--muted);">${t.tooltip_valor_unidade}</span>`);
+    } else {
+      rows.push(`<i>${t.label_no_data}</i>`);
     }
     return rows.join("<br>");
   }
@@ -742,18 +762,19 @@
       const layer = mapLayersByCodIbge.get(municipio.cod_ibge);
       if (!layer) return;
 
-      let fillColor, cell, ratioClass;
+      let fillColor, cellAll, cellForest, ratioClass;
       if (state.mapMode === "ratio") {
         ratioClass = computeMapRatioClass(municipioIdx, state.year);
-        cell = getMapCell(municipioIdx, state.year, 0);
+        cellAll = getMapCell(municipioIdx, state.year, 0);
+        cellForest = getMapCell(municipioIdx, state.year, 1);
         fillColor = ratioClass ? MAP_RATIO_COLORS[ratioClass] : "url(#" + MAP_NODATA_PATTERN_ID + ")";
       } else {
-        cell = getMapCell(municipioIdx, state.year, state.mapMode === "forest" ? 1 : 0);
-        fillColor = cell ? mapCategoryColor(cell.categoriaIdx) : "url(#" + MAP_NODATA_PATTERN_ID + ")";
+        cellAll = getMapCell(municipioIdx, state.year, state.mapMode === "forest" ? 1 : 0);
+        fillColor = cellAll ? mapCategoryColor(cellAll.categoriaIdx) : "url(#" + MAP_NODATA_PATTERN_ID + ")";
       }
 
       layer.setStyle({ fillColor, color: mapStrokeColorFor(fillColor) });
-      layer.setTooltipContent(mapTooltipHtml(t, municipio, cell, ratioClass));
+      layer.setTooltipContent(mapTooltipHtml(t, municipio, cellAll, cellForest, ratioClass));
     });
     renderMapLegend(t);
   }
