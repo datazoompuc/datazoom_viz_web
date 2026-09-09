@@ -22,7 +22,6 @@
       <button class="view-btn" id="view-change" data-view="change"></button>
       <button class="view-btn" id="view-trends" data-view="trends"></button>
       <button class="view-btn" id="view-explore" data-view="explore"></button>
-      <button class="view-btn" id="view-prodrank" data-view="prodrank"></button>
     </div>
 
     <div class="spacer"></div>
@@ -70,14 +69,14 @@
       <select id="composition-scope-select"></select>
     </div>
 
-    <div class="var_selec_group hidden" id="prodrank-group">
-      <label id="label_prodrank_select" for="prodrank-curated-select"></label>
-      <select id="prodrank-curated-select"></select>
+    <div class="var_selec_group hidden" id="ranking-product-group">
+      <label id="label_ranking_product_select" for="ranking-product-select"></label>
+      <select id="ranking-product-select"></select>
       <div class="spacer"></div>
-      <label id="label_prodrank_search" for="prodrank-input" class="prodrank-search-label"></label>
-      <input type="text" id="prodrank-input" list="prodrank-datalist" autocomplete="off">
-      <datalist id="prodrank-datalist"></datalist>
-      <p class="prodrank-full-label" id="prodrank-full-label"></p>
+      <label id="label_ranking_product_search" for="ranking-product-input" class="prodrank-search-label"></label>
+      <input type="text" id="ranking-product-input" list="ranking-product-datalist" autocomplete="off">
+      <datalist id="ranking-product-datalist"></datalist>
+      <p class="prodrank-full-label" id="ranking-product-full-label"></p>
     </div>
 
     <div class="var_selec_group hidden" id="explore-group">
@@ -172,14 +171,6 @@
         <div id="explore-legend" class="composition-legend"></div>
       </div>
 
-      <div id="prodrank-panel" class="ranking-panel hidden">
-        <div class="ranking-header">
-          <span id="prodrank-axis-label" class="ranking-axis-label"></span>
-          <span id="prodrank-total-label" class="region-total-label"></span>
-        </div>
-        <div id="prodrank-rows" class="ranking-rows"></div>
-        <div id="prodrank-tooltip" class="chart-tooltip"></div>
-      </div>
     </div>
   </div>
 </div>

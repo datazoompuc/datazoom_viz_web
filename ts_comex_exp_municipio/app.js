@@ -55,19 +55,18 @@
       subtitle_composition_muni: "Categorias de produto exportadas, 1997–2025 — passe o mouse para ver o detalhamento",
       label_composition_scope: "Escopo",
       composition_scope_region: "Toda a Amazônia Legal",
-      view_prodrank: "Produto",
-      title_prodrank: "Ranking de municípios por produto",
-      subtitle_prodrank: "Municípios que mais exportam o produto selecionado, por ano",
-      label_prodrank_select: "Produto",
-      label_prodrank_search: "Ou busque outro produto (todos os SH4)",
-      prodrank_custom_option: "(produto buscado)",
+      title_ranking_product: "Ranking de municípios exportadores — {produto}",
+      label_ranking_product_select: "Produto",
+      label_ranking_product_search: "Ou busque outro produto (todos os SH4)",
+      ranking_product_all: "Todos os produtos",
+      ranking_product_custom: "(produto buscado)",
       prodrank_cat_agro: "Agro e alimentos",
       prodrank_cat_carnes: "Carnes e produtos de origem animal",
       prodrank_cat_oleos: "Óleos e derivados",
       prodrank_cat_florestais: "Florestais e madeira",
       prodrank_cat_metais: "Metais e minerais",
       prodrank_cat_industria: "Indústria e manufaturados",
-      prodrank_total_prefix: "Total exportado no ano: ",
+      ranking_product_total_prefix: "Total exportado no ano: ",
       label_loading: "Carregando…",
       btn_lang: "English"
     },
@@ -110,19 +109,18 @@
       subtitle_composition_muni: "Product categories exported, 1997–2025 — hover to see the breakdown",
       label_composition_scope: "Scope",
       composition_scope_region: "Whole Legal Amazon",
-      view_prodrank: "Product",
-      title_prodrank: "Municipality ranking by product",
-      subtitle_prodrank: "Municipalities exporting the most of the selected product, by year",
-      label_prodrank_select: "Product",
-      label_prodrank_search: "Or search another product (all SH4)",
-      prodrank_custom_option: "(searched product)",
+      title_ranking_product: "Ranking of exporting municipalities — {produto}",
+      label_ranking_product_select: "Product",
+      label_ranking_product_search: "Or search another product (all SH4)",
+      ranking_product_all: "All products",
+      ranking_product_custom: "(searched product)",
       prodrank_cat_agro: "Agriculture & food",
       prodrank_cat_carnes: "Meat & animal products",
       prodrank_cat_oleos: "Oils & derivatives",
       prodrank_cat_florestais: "Forestry & wood",
       prodrank_cat_metais: "Metals & minerals",
       prodrank_cat_industria: "Industry & manufactured goods",
-      prodrank_total_prefix: "Total exported that year: ",
+      ranking_product_total_prefix: "Total exported that year: ",
       label_loading: "Loading…",
       btn_lang: "Português"
     }
@@ -147,7 +145,7 @@
     lang: "pt",
     year: null,
     topN: 15,
-    view: "ranking", // "ranking" | "composition" | "change" | "trends" | "explore" | "prodrank"
+    view: "ranking", // "ranking" | "composition" | "change" | "trends" | "explore"
     playing: false,
     playTimer: null,
     changeState: null, // UF filter for the change (dumbbell) view
@@ -157,7 +155,7 @@
     exploreLog: false,
     exploreIndex: false,
     compositionScope: null, // null = whole-region composition; a municipio name = that place's own composition
-    prodrankCode: null // selected SH4 product code for the product ranking view
+    rankingProduct: null // null = ranked by total across all products; a SH4 code = ranked by that product only
   };
 
   let dictionary, municipalityTotals, regionTotals, composition, products, muniComposition;
@@ -170,14 +168,17 @@
   let muniCompositionRowsByMuni; // municipio -> [{produto, ano, valor}], only municipalities with any exports
   let activeCompositionSeries; // whichever series (region or a municipio) is currently rendered, for the hover handler
 
-  // Product ranking (SH4-level, ~1,142 specific products vs. the 22 broad
-  // SEC categories used elsewhere) is fetched lazily — it's ~1MB, by far
-  // the heaviest dataset in the app, and most visits never open this view.
+  // Product-filtered ranking (SH4-level, ~1,142 specific products vs. the 22
+  // broad SEC categories used elsewhere) is fetched lazily — it's ~1MB, by
+  // far the heaviest dataset in the app, and most visits never pick a
+  // specific product (the default "Todos os produtos" needs none of this).
+  // Fetch is triggered by interacting with the product picker, not by
+  // landing on Ranking (its default view) — see ensureProductRankingLoaded.
   let productRanking = null; // raw {municipios, produtos, cells} once loaded
   let productRankingPromise = null;
   let productRankingRowsByCode; // code -> [{municipio, ano, valor}]
-  let productsByCode; // code -> {code, label_pt, label_en}
-  let prodrankLabelToCode; // current-language short label -> code, for the datalist picker
+  let productsByCode; // code -> {code, label_pt, label_en}, once loaded
+  let rankingProductLabelToCode; // current-language short label -> code, for the datalist picker
   let sparkSeries = [];
   let sparkXFor = null;
   let sparkYFor = null;
@@ -288,7 +289,48 @@
     { key: "metais", codes: ["7108", "5201"] },
     { key: "industria", codes: ["7318", "8482", "4818", "6204", "4202", "3006"] }
   ];
-  const PRODRANK_DEFAULT_CODE = "1201"; // Soja — first item of the first curated category
+
+  // Hardcoded short labels for exactly the curated codes above (same
+  // clause-truncation rule as rankingProductShortLabel, pre-computed from
+  // auxiliar_cod_sh4.rds). This lets the curated dropdown render correctly
+  // on Ranking's default load with zero network cost — Ranking is the
+  // app's landing view, so eagerly fetching the 1MB product_ranking.json
+  // just to populate this list would defeat the whole point of it being
+  // lazy. SH4 nomenclature is a fixed international standard, not
+  // something that changes with each Comex data refresh, so this snapshot
+  // going stale is not a practical concern.
+  const PRODRANK_CURATED_LABELS = {
+    "1201": { pt: "Soja, mesmo triturada", en: "Soya beans, whether or not broken" },
+    "1005": { pt: "Milho", en: "Maize (corn)" },
+    "0713": { pt: "Legumes de vagem, secos, em grão, mesmo pelados ou partidos", en: "Dried leguminous vegetables, shelled, whether or not skin…" },
+    "0710": { pt: "Produtos hortícolas, não cozidos ou cozidos em água ou va…", en: "Vegetables (uncooked or cooked by steaming or boiling in …" },
+    "0702": { pt: "Tomates, frescos ou refrigerados", en: "Tomato, fresh or chilled" },
+    "0707": { pt: "Pepinos e pepininhos (cornichons), frescos ou refrigerados", en: "Cucumbers and gherkins, fresh or chilled" },
+    "1104": { pt: "Grãos de cereais trabalhados de outro modo (por exemplo: …", en: "Cereal grains otherwise worked (for example, hulled, roll…" },
+    "1904": { pt: "Produtos à base de cereais, obtidos por expansão ou por t…", en: "Prepared foods obtained by the swelling or roasting of ce…" },
+    "2005": { pt: "Outros produtos hortícolas preparados ou conservados, exc…", en: "Other vegetables prepared or preserved otherwise than by …" },
+    "2008": { pt: "Frutas e outras partes comestíveis de plantas, preparadas…", en: "Fruit, nuts and other edible parts of plants, otherwise p…" },
+    "2201": { pt: "Águas, incluídas as águas minerais, naturais ou artificia…", en: "Waters, including natural or artificial mineral waters an…" },
+    "2101": { pt: "Extractos, essências e concentrados de café, chá ou de ma…", en: "Extracts, essences and concentrates, of coffee, tea or ma…" },
+    "0202": { pt: "Carnes de animais da espécie bovina, congeladas", en: "Meat of bovine animals, frozen" },
+    "0201": { pt: "Carnes de animais da espécie bovina, frescas ou refrigeradas", en: "Meat of bovine animals, fresh or chilled" },
+    "0206": { pt: "Miudezas comestíveis de animais das espécies bovina, suín…", en: "Edible offal of bovine animals, swine, sheep, goats, hors…" },
+    "0504": { pt: "Tripas, bexigas e estômagos de animais, exceto peixes, in…", en: "Animal (not fish) guts, bladders, stomachs and parts" },
+    "1502": { pt: "Gorduras de animais das espécies bovina, ovina ou caprina…", en: "Fats of bovine animals, sheep or goats, other than those …" },
+    "2301": { pt: "Farinhas, pó e pellets, de carnes, miudezas, peixes ou cr…", en: "Flours, meals and pellets, of meat or meat offal, of fish…" },
+    "1507": { pt: "Óleo de soja e respectivas fracções, mesmo refinados, mas…", en: "Soya-bean oil and its fractions, whether or not refined, …" },
+    "4407": { pt: "Madeira serrada ou endireitada longitudinalmente, cortada…", en: "Wood sawn or chipped lengthwise, sliced or peeled, whethe…" },
+    "4409": { pt: "Madeira (incluídos os tacos e frisos para soalhos, não mo…", en: "Wood (including strips and friezes for parquet flooring, …" },
+    "0801": { pt: "Cocos, castanha do Brasil e castanha de caju, frescos ou …", en: "Coconuts, Brazil nuts and cashew nuts, fresh or dried, wh…" },
+    "7108": { pt: "Ouro (incluído o ouro platinado), em formas brutas ou sem…", en: "Gold (including gold plated with platinum), unwrought or …" },
+    "5201": { pt: "Algodão, não cardado nem penteado", en: "Cotton, not carded or combed" },
+    "7318": { pt: "Parafusos, pernos ou pinos, roscados, porcas, tira-fundos…", en: "Screws, bolts, nuts, coach screws, screw hooks, rivets, c…" },
+    "8482": { pt: "Rolamentos de esferas, de roletes ou de agulhas", en: "Ball or roller bearings" },
+    "4818": { pt: "Papel dos tipos utilizados para a fabricação de papéis hi…", en: "Toilet paper and similar paper, cellulose wadding or webs…" },
+    "6204": { pt: "Fatos de saia-casaco, conjuntos, casacos, vestidos, saias…", en: "Women's or girls' suits, ensembles, jackets, blazers, dre…" },
+    "4202": { pt: "Malas e maletas, incluídas as de toucador e as maletas e …", en: "Trunks, suit-cases, vanity-cases, executive-cases, brief-…" },
+    "3006": { pt: "Preparações e artigos farmacêuticos indicados na Nota 4 d…", en: "Pharmaceutical goods specified in note 4 to this chapter" }
+  };
 
   function ensureProductRankingLoaded() {
     if (productRankingPromise) return productRankingPromise;
@@ -296,13 +338,11 @@
       productRanking = data;
       productsByCode = new Map(data.produtos.map((p) => [p.code, p]));
       productRankingRowsByCode = buildProductRankingIndex(data);
-      if (!state.prodrankCode || !productRankingRowsByCode.has(state.prodrankCode)) {
-        state.prodrankCode = productRankingRowsByCode.has(PRODRANK_DEFAULT_CODE)
-          ? PRODRANK_DEFAULT_CODE
-          : computeTopProductCode();
+      if (state.rankingProduct && !productRankingRowsByCode.has(state.rankingProduct)) {
+        state.rankingProduct = null;
         updateUrl();
       }
-      populateProdrankPicker();
+      populateRankingProductPicker();
     });
     return productRankingPromise;
   }
@@ -318,48 +358,48 @@
     return byCode;
   }
 
-  function computeTopProductCode() {
-    let best = null, bestTotal = -1;
-    for (const [code, rows] of productRankingRowsByCode.entries()) {
-      let sum = 0;
-      for (const r of rows) sum += r.valor;
-      if (sum > bestTotal) { bestTotal = sum; best = code; }
-    }
-    return best;
-  }
-
-  function prodrankLabel(code) {
-    const p = productsByCode.get(code);
+  // Full official name — only available once product_ranking.json has
+  // loaded (needed for the on-chart/tooltip display, not the picker).
+  function rankingProductLabel(code) {
+    const p = productsByCode && productsByCode.get(code);
     if (!p) return code;
     return state.lang === "en" ? p.label_en : p.label_pt;
   }
 
-  // Same clause-boundary truncation as SEC product names (productShortLabel)
-  // — official SH4 customs descriptions are just as long (median ~107
-  // chars, max 255) and just as compound-clause-shaped.
-  function prodrankShortLabel(code) {
-    const full = prodrankLabel(code);
-    const clause = full.split(";")[0].trim();
-    return clause.length > 60 ? clause.slice(0, 57).trimEnd() + "…" : clause;
+  // Short label for the picker: uses the hardcoded curated snapshot when
+  // the full dataset isn't loaded yet (so the dropdown works with zero
+  // fetch), the live official data once it is. Same clause-boundary
+  // truncation rule either way — official SH4 customs descriptions are
+  // long (median ~107 chars, max 255) and compound-clause-shaped, just
+  // like the SEC product names.
+  function rankingProductShortLabel(code) {
+    if (productsByCode) {
+      const full = rankingProductLabel(code);
+      const clause = full.split(";")[0].trim();
+      return clause.length > 60 ? clause.slice(0, 57).trimEnd() + "…" : clause;
+    }
+    const curated = PRODRANK_CURATED_LABELS[code];
+    return curated ? curated[state.lang] : code;
   }
 
-  function populateProdrankPicker() {
+  // Curated dropdown works before the 1MB dataset loads (labels come from
+  // PRODRANK_CURATED_LABELS) — safe to call at init and again after load
+  // (rankingProductShortLabel switches to the live official data once
+  // productsByCode exists, so re-running this just refreshes to the same
+  // values plus whatever's needed for a lang change).
+  function populateCuratedSelect() {
     const t = I18N[state.lang];
-
-    // Curated dropdown, grouped exactly like the original app's optgroups.
-    const curatedSelect = document.getElementById("prodrank-curated-select");
-    curatedSelect.innerHTML = "";
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = t.prodrank_custom_option;
-    curatedSelect.appendChild(placeholder);
+    const select = document.getElementById("ranking-product-select");
+    select.innerHTML = "";
+    const allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = t.ranking_product_all;
+    select.appendChild(allOpt);
     for (const cat of PRODRANK_CATEGORIES) {
-      const codes = cat.codes.filter((c) => productsByCode.has(c));
-      if (!codes.length) continue;
       const group = document.createElement("optgroup");
       group.label = t[`prodrank_cat_${cat.key}`];
-      const items = codes
-        .map((code) => ({ code, label: prodrankShortLabel(code) }))
+      const items = cat.codes
+        .map((code) => ({ code, label: rankingProductShortLabel(code) }))
         .sort((a, b) => a.label.localeCompare(b.label, state.lang));
       for (const { code, label } of items) {
         const opt = document.createElement("option");
@@ -367,33 +407,59 @@
         opt.textContent = label;
         group.appendChild(opt);
       }
-      curatedSelect.appendChild(group);
+      select.appendChild(group);
     }
+    syncRankingProductControls();
+  }
 
-    // Full-catalog search, for anything outside the curated set above.
-    const datalist = document.getElementById("prodrank-datalist");
+  // Full-catalog search — only possible once product_ranking.json is
+  // loaded, since it needs every code's label, not just the curated 30.
+  function populateRankingProductPicker() {
+    populateCuratedSelect();
+
+    const datalist = document.getElementById("ranking-product-datalist");
     datalist.innerHTML = "";
-    prodrankLabelToCode = new Map();
+    rankingProductLabelToCode = new Map();
     const sorted = Array.from(productsByCode.keys())
-      .map((code) => ({ code, label: prodrankShortLabel(code) }))
+      .map((code) => ({ code, label: rankingProductShortLabel(code) }))
       .sort((a, b) => a.label.localeCompare(b.label, state.lang));
     for (const { code, label } of sorted) {
-      prodrankLabelToCode.set(label, code);
+      rankingProductLabelToCode.set(label, code);
       const opt = document.createElement("option");
       opt.value = label;
       datalist.appendChild(opt);
     }
 
-    syncProdrankControls();
+    syncRankingProductControls();
   }
 
-  function syncProdrankControls() {
-    if (!state.prodrankCode) return;
-    document.getElementById("prodrank-input").value = prodrankShortLabel(state.prodrankCode);
-    document.getElementById("prodrank-full-label").textContent = prodrankLabel(state.prodrankCode);
-    const curatedSelect = document.getElementById("prodrank-curated-select");
-    const isCurated = Array.from(curatedSelect.options).some((o) => o.value === state.prodrankCode);
-    curatedSelect.value = isCurated ? state.prodrankCode : "";
+  function syncRankingProductControls() {
+    const select = document.getElementById("ranking-product-select");
+    const existingCustom = select.querySelector('option[value="__custom__"]');
+    if (existingCustom) existingCustom.remove();
+
+    if (!state.rankingProduct) {
+      select.value = "";
+    } else if (Array.from(select.options).some((o) => o.value === state.rankingProduct)) {
+      select.value = state.rankingProduct;
+    } else {
+      // A searched (non-curated) product, or a URL deep link to one — show
+      // a distinct marker instead of silently snapping to "Todos os produtos".
+      const custom = document.createElement("option");
+      custom.value = "__custom__";
+      custom.textContent = I18N[state.lang].ranking_product_custom;
+      // select.children[1] is the first <optgroup> (a direct child of
+      // <select>) — select.options[1] would instead be that optgroup's
+      // first nested <option>, which insertBefore rejects as not being a
+      // direct child of <select>.
+      select.insertBefore(custom, select.children[1] || null);
+      select.value = "__custom__";
+    }
+
+    const input = document.getElementById("ranking-product-input");
+    input.value = state.rankingProduct ? rankingProductShortLabel(state.rankingProduct) : "";
+    document.getElementById("ranking-product-full-label").textContent =
+      state.rankingProduct && productsByCode ? rankingProductLabel(state.rankingProduct) : "";
   }
 
   // ---- State init from query string ----
@@ -411,14 +477,14 @@
     const qLog = params.get("log");
     const qIndex = params.get("index");
     const qCompScope = params.get("compscope");
-    const qProdrank = params.get("prodrank");
+    const qRankProduct = params.get("rankproduct");
 
     state.lang = qLang === "en" ? "en" : "pt";
     state.year = Number.isFinite(qYear) && qYear >= dictionary.year_inicio && qYear <= dictionary.year_final
       ? qYear
       : dictionary.year_final;
     state.topN = [10, 15, 20, 30].includes(qTopN) ? qTopN : 15;
-    state.view = ["ranking", "composition", "change", "trends", "explore", "prodrank"].includes(qView) ? qView : "ranking";
+    state.view = ["ranking", "composition", "change", "trends", "explore"].includes(qView) ? qView : "ranking";
     state.changeState = ufList.includes(qState) ? qState : ufList[0];
     state.yearA = Number.isFinite(qYearA) && qYearA >= dictionary.year_inicio && qYearA <= dictionary.year_final
       ? qYearA
@@ -433,7 +499,7 @@
     state.compositionScope = qCompScope && muniCompositionRowsByMuni.has(qCompScope) ? qCompScope : null;
     // Validated once product_ranking.json is lazy-loaded (ensureProductRankingLoaded)
     // — the raw query value is kept provisionally so a shared URL still resolves.
-    state.prodrankCode = qProdrank || null;
+    state.rankingProduct = qRankProduct || null;
   }
 
   function updateUrl() {
@@ -449,7 +515,7 @@
     params.set("log", state.exploreLog ? "1" : "0");
     params.set("index", state.exploreIndex ? "1" : "0");
     params.set("compscope", state.compositionScope || "");
-    params.set("prodrank", state.prodrankCode || "");
+    params.set("rankproduct", state.rankingProduct || "");
     history.replaceState(null, "", `?${params.toString()}`);
   }
 
@@ -480,7 +546,6 @@
       state.topN = parseInt(e.target.value, 10);
       updateUrl();
       if (state.view === "trends") renderTrends();
-      else if (state.view === "prodrank") renderProdRank();
       else renderRanking();
     });
 
@@ -489,28 +554,36 @@
     document.getElementById("view-change").addEventListener("click", () => setView("change"));
     document.getElementById("view-trends").addEventListener("click", () => setView("trends"));
     document.getElementById("view-explore").addEventListener("click", () => setView("explore"));
-    document.getElementById("view-prodrank").addEventListener("click", () => setView("prodrank"));
 
-    const prodrankInput = document.getElementById("prodrank-input");
-    prodrankInput.addEventListener("change", (e) => {
-      const code = prodrankLabelToCode && prodrankLabelToCode.get(e.target.value);
+    // Curated dropdown renders immediately (hardcoded labels, see
+    // PRODRANK_CURATED_LABELS) — no fetch until an actual product is picked.
+    populateCuratedSelect();
+
+    const rankingProductInput = document.getElementById("ranking-product-input");
+    // Prefetch on focus so the full-catalog datalist is ready (or close to
+    // it) by the time the user picks something from it, without paying the
+    // cost just for landing on Ranking.
+    rankingProductInput.addEventListener("focus", () => ensureProductRankingLoaded());
+    rankingProductInput.addEventListener("change", (e) => {
+      const code = rankingProductLabelToCode && rankingProductLabelToCode.get(e.target.value);
       if (!code) {
-        syncProdrankControls(); // typed text didn't match a real option — revert
+        syncRankingProductControls(); // typed text didn't match a real option — revert
         return;
       }
-      state.prodrankCode = code;
+      state.rankingProduct = code;
       updateUrl();
-      syncProdrankControls();
-      renderProdRank();
+      syncRankingProductControls();
+      ensureProductRankingLoaded().then(() => render());
     });
 
-    const prodrankCuratedSelect = document.getElementById("prodrank-curated-select");
-    prodrankCuratedSelect.addEventListener("change", (e) => {
-      if (!e.target.value) return; // "(produto buscado)" placeholder — no-op
-      state.prodrankCode = e.target.value;
+    const rankingProductSelect = document.getElementById("ranking-product-select");
+    rankingProductSelect.addEventListener("change", (e) => {
+      if (e.target.value === "__custom__") return; // synthetic marker, not a real choice
+      state.rankingProduct = e.target.value || null;
       updateUrl();
-      syncProdrankControls();
-      renderProdRank();
+      syncRankingProductControls();
+      if (state.rankingProduct) ensureProductRankingLoaded().then(() => render());
+      else render();
     });
 
     const compositionScopeSelect = document.getElementById("composition-scope-select");
@@ -609,21 +682,18 @@
     document.getElementById("view-change").classList.toggle("active", view === "change");
     document.getElementById("view-trends").classList.toggle("active", view === "trends");
     document.getElementById("view-explore").classList.toggle("active", view === "explore");
-    document.getElementById("view-prodrank").classList.toggle("active", view === "prodrank");
     document.getElementById("ranking-panel").classList.toggle("hidden", view !== "ranking");
     document.getElementById("composition-panel").classList.toggle("hidden", view !== "composition");
     document.getElementById("change-panel").classList.toggle("hidden", view !== "change");
     document.getElementById("trends-panel").classList.toggle("hidden", view !== "trends");
     document.getElementById("explore-panel").classList.toggle("hidden", view !== "explore");
-    document.getElementById("prodrank-panel").classList.toggle("hidden", view !== "prodrank");
-    // topn-group is shared between ranking (per-year top-N), trends
-    // (all-time top-N), and prodrank (per-year top-N for one product) —
-    // same control, different underlying ranking.
-    document.getElementById("topn-group").classList.toggle("hidden", view !== "ranking" && view !== "trends" && view !== "prodrank");
+    // topn-group is shared between ranking (per-year top-N, optionally
+    // filtered to one product) and trends (all-time top-N).
+    document.getElementById("topn-group").classList.toggle("hidden", view !== "ranking" && view !== "trends");
     document.getElementById("change-group").classList.toggle("hidden", view !== "change");
     document.getElementById("explore-group").classList.toggle("hidden", view !== "explore");
     document.getElementById("composition-scope-group").classList.toggle("hidden", view !== "composition");
-    document.getElementById("prodrank-group").classList.toggle("hidden", view !== "prodrank");
+    document.getElementById("ranking-product-group").classList.toggle("hidden", view !== "ranking");
     document.querySelector(".slider-inline").classList.toggle("hidden", view === "change");
     updateUrl();
     render();
@@ -688,8 +758,6 @@
       updateTrendsMarkers();
     } else if (state.view === "explore") {
       updateExploreGuide();
-    } else if (state.view === "prodrank") {
-      renderProdRank();
     } else {
       renderRanking();
     }
@@ -750,9 +818,7 @@
     document.getElementById("view-change").textContent = t.view_change;
     document.getElementById("view-trends").textContent = t.view_trends;
     document.getElementById("view-explore").textContent = t.view_explore;
-    document.getElementById("view-prodrank").textContent = t.view_prodrank;
     document.getElementById("ranking-axis-label").textContent = t.ranking_axis_label;
-    document.getElementById("prodrank-axis-label").textContent = t.ranking_axis_label;
     document.getElementById("change-axis-label").textContent = t.change_axis_label;
     document.getElementById("label_state").textContent = t.label_state;
     document.getElementById("label_year_a").textContent = t.label_year_a;
@@ -763,14 +829,14 @@
     document.getElementById("label_index_first").textContent = t.label_index_first;
     document.getElementById("label_composition_scope").textContent = t.label_composition_scope;
     document.getElementById("composition-scope-select").options[0].textContent = t.composition_scope_region;
-    document.getElementById("label_prodrank_select").textContent = t.label_prodrank_select;
-    document.getElementById("label_prodrank_search").textContent = t.label_prodrank_search;
+    document.getElementById("label_ranking_product_select").textContent = t.label_ranking_product_select;
+    document.getElementById("label_ranking_product_search").textContent = t.label_ranking_product_search;
     document.getElementById("lang-toggle-label").textContent = t.btn_lang;
-    // Repopulate the datalist too — its option labels are language-specific.
-    if (productRanking) populateProdrankPicker();
+    // Repopulate the picker(s) too — option labels are language-specific.
+    if (productRanking) populateRankingProductPicker(); else populateCuratedSelect();
 
-    const titles = { ranking: t.title_ranking, composition: state.compositionScope ? t.title_composition_muni.replace("{municipio}", state.compositionScope) : t.title_composition, change: t.title_change, trends: t.title_trends, explore: t.title_explore, prodrank: t.title_prodrank };
-    const subtitles = { ranking: t.subtitle_ranking, composition: state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition, change: t.subtitle_change, trends: t.subtitle_trends, explore: t.subtitle_explore, prodrank: t.subtitle_prodrank };
+    const titles = { ranking: state.rankingProduct ? t.title_ranking_product.replace("{produto}", rankingProductShortLabel(state.rankingProduct)) : t.title_ranking, composition: state.compositionScope ? t.title_composition_muni.replace("{municipio}", state.compositionScope) : t.title_composition, change: t.title_change, trends: t.title_trends, explore: t.title_explore };
+    const subtitles = { ranking: t.subtitle_ranking, composition: state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition, change: t.subtitle_change, trends: t.subtitle_trends, explore: t.subtitle_explore };
     document.getElementById("plot-title").textContent = titles[state.view];
     document.getElementById("plot-subtitle").textContent = subtitles[state.view];
 
@@ -787,18 +853,25 @@
       renderTrends();
     } else if (state.view === "explore") {
       renderExplore();
-    } else if (state.view === "prodrank") {
-      renderProdRank();
     } else {
       renderRanking();
     }
   }
 
   const RANKING_IDS = { rows: "ranking-rows", tooltip: "ranking-tooltip", panel: "ranking-panel" };
-  const PRODRANK_IDS = { rows: "prodrank-rows", tooltip: "prodrank-tooltip", panel: "prodrank-panel" };
 
+  // Ranking is one chart (top-N municipalities for a year) fed by two
+  // possible measures: total value across all products (rankingProduct
+  // === null, using the always-loaded totalsByYear) or one specific
+  // product's value (using the lazily-loaded productRankingRowsByCode).
   function renderRanking() {
     const t = I18N[state.lang];
+
+    if (state.rankingProduct) {
+      renderRankingByProduct(t);
+      return;
+    }
+
     const rows = totalsByYear.get(state.year) || [];
     const top = rows.slice(0, state.topN);
     const maxVal = top.length ? top[0].valor : 1;
@@ -814,23 +887,22 @@
     container.appendChild(frag);
   }
 
-  // Product ranking (SH4): same top-N bar list as Ranking, but rows come
-  // from one selected product's municipality breakdown instead of overall
-  // totals — reuses buildRankRow/tooltip wiring via PRODRANK_IDS.
-  function renderProdRank() {
-    const t = I18N[state.lang];
-    const container = document.getElementById(PRODRANK_IDS.rows);
+  // Ranking filtered to one specific product — same top-N bar list, rows
+  // come from that product's municipality breakdown (lazily loaded)
+  // instead of the always-available cross-product totals.
+  function renderRankingByProduct(t) {
+    const container = document.getElementById(RANKING_IDS.rows);
 
     if (!productRanking) {
       container.innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
-      document.getElementById("prodrank-total-label").textContent = "";
+      document.getElementById("region-total-label").textContent = "";
       ensureProductRankingLoaded().then(() => {
-        if (state.view === "prodrank") render();
+        if (state.view === "ranking" && state.rankingProduct) render();
       });
       return;
     }
 
-    const allRows = productRankingRowsByCode.get(state.prodrankCode) || [];
+    const allRows = productRankingRowsByCode.get(state.rankingProduct) || [];
     const rows = allRows
       .filter((r) => r.ano === state.year)
       .map((r) => ({ municipio: r.municipio, valor: r.valor }))
@@ -839,12 +911,12 @@
     const maxVal = top.length ? top[0].valor : 1;
 
     const yearTotal = rows.reduce((sum, r) => sum + r.valor, 0);
-    document.getElementById("prodrank-total-label").innerHTML =
-      rows.length ? t.prodrank_total_prefix + "<b>" + fmtAbbrev(yearTotal) + "</b>" : "";
+    document.getElementById("region-total-label").innerHTML =
+      rows.length ? t.ranking_product_total_prefix + "<b>" + fmtAbbrev(yearTotal) + "</b>" : "";
 
     container.innerHTML = "";
     const frag = document.createDocumentFragment();
-    top.forEach((row, i) => frag.appendChild(buildRankRow(row, i, maxVal, PRODRANK_IDS)));
+    top.forEach((row, i) => frag.appendChild(buildRankRow(row, i, maxVal, RANKING_IDS)));
     container.appendChild(frag);
   }
 

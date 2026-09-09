@@ -135,8 +135,8 @@ html, body {
 #change-year-a,
 #change-year-b,
 #composition-scope-select,
-#prodrank-curated-select,
-#prodrank-input {
+#ranking-product-select,
+#ranking-product-input {
   width: 100%;
   padding: 6px 8px;
   border-radius: 4px;
@@ -146,7 +146,7 @@ html, body {
   color: var(--ink);
   font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
-#prodrank-input { text-overflow: ellipsis; }
+#ranking-product-input { text-overflow: ellipsis; }
 
 .prodrank-full-label {
   font-size: 0.75rem;
