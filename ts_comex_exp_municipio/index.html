@@ -22,6 +22,7 @@
       <button class="view-btn" id="view-change" data-view="change"></button>
       <button class="view-btn" id="view-trends" data-view="trends"></button>
       <button class="view-btn" id="view-explore" data-view="explore"></button>
+      <button class="view-btn" id="view-map" data-view="map"></button>
     </div>
 
     <div class="spacer"></div>
@@ -93,6 +94,16 @@
         <input type="checkbox" id="explore-index">
         <span id="label_index_first"></span>
       </label>
+    </div>
+
+    <div class="var_selec_group hidden" id="map-group">
+      <p class="vars" id="label_map_mode"></p>
+      <div class="view-toggle" id="map-mode-toggle">
+        <button class="view-btn active" id="map-mode-forest" data-mode="forest"></button>
+        <button class="view-btn" id="map-mode-all" data-mode="all"></button>
+        <button class="view-btn" id="map-mode-ratio" data-mode="ratio"></button>
+      </div>
+      <p class="map-hint" id="map-hint"></p>
     </div>
 
     <div class="spacer"></div>
@@ -169,6 +180,10 @@
           <div id="explore-tooltip" class="chart-tooltip"></div>
         </div>
         <div id="explore-legend" class="composition-legend"></div>
+      </div>
+
+      <div id="map-panel" class="map-panel hidden">
+        <div id="map-container"></div>
       </div>
 
     </div>

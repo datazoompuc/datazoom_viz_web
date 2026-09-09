@@ -68,6 +68,31 @@
       prodrank_cat_industria: "Indústria e manufaturados",
       ranking_product_total_prefix: "Total exportado no ano: ",
       label_loading: "Carregando…",
+      view_map: "Mapa",
+      label_map_mode: "VARIÁVEIS:",
+      map_mode_forest: "Compatíveis c/ Floresta",
+      map_mode_all: "Todos os Produtos",
+      map_mode_ratio: "Razão Floresta/Outros",
+      title_map_forest: "Principal produto compatível com a floresta",
+      title_map_all: "Principal produto exportado",
+      title_map_ratio: "Floresta vs. outros produtos",
+      subtitle_map_forest: "Município colorido pela categoria do seu principal produto compatível com a floresta, por ano",
+      subtitle_map_all: "Município colorido pela categoria do seu principal produto exportado, por ano",
+      subtitle_map_ratio: "O principal produto exportado do município é compatível com a floresta?",
+      map_hint: "Passe o mouse sobre um município para ver detalhes.",
+      map_loading: "Carregando mapa…",
+      tooltip_municipio: "Município:",
+      tooltip_estado: "Estado:",
+      tooltip_produto: "Principal produto:",
+      tooltip_categoria: "Categoria:",
+      tooltip_valor: "Valor:",
+      tooltip_valor_unidade: "% das exportações desse produto na Amazônia Legal vindas deste município",
+      tooltip_classe: "Classificação:",
+      ratio_same: "Mesmo produto principal",
+      ratio_nao: "Principal produto não é compatível com a floresta",
+      ratio_sim: "Principal produto é compatível com a floresta",
+      legend_title_category: "Categoria do principal produto",
+      legend_title_ratio: "Classificação",
       btn_lang: "English"
     },
     en: {
@@ -122,6 +147,31 @@
       prodrank_cat_industria: "Industry & manufactured goods",
       ranking_product_total_prefix: "Total exported that year: ",
       label_loading: "Loading…",
+      view_map: "Map",
+      label_map_mode: "VARIABLES:",
+      map_mode_forest: "Forest Compatible",
+      map_mode_all: "All Products",
+      map_mode_ratio: "Forest/Other Ratio",
+      title_map_forest: "Main forest-compatible product",
+      title_map_all: "Main exported product",
+      title_map_ratio: "Forest vs. other products",
+      subtitle_map_forest: "Municipality colored by its main forest-compatible product's category, by year",
+      subtitle_map_all: "Municipality colored by its main exported product's category, by year",
+      subtitle_map_ratio: "Is the municipality's main exported product forest-compatible?",
+      map_hint: "Hover over a municipality to see details.",
+      map_loading: "Loading map…",
+      tooltip_municipio: "Municipality:",
+      tooltip_estado: "State:",
+      tooltip_produto: "Main product:",
+      tooltip_categoria: "Category:",
+      tooltip_valor: "Value:",
+      tooltip_valor_unidade: "% of that product's Legal Amazon exports that came from this municipality",
+      tooltip_classe: "Classification:",
+      ratio_same: "Same main product",
+      ratio_nao: "Main product is not forest-compatible",
+      ratio_sim: "Main product is forest-compatible",
+      legend_title_category: "Main product's category",
+      legend_title_ratio: "Classification",
       btn_lang: "Português"
     }
   };
@@ -155,7 +205,8 @@
     exploreLog: false,
     exploreIndex: false,
     compositionScope: null, // null = whole-region composition; a municipio name = that place's own composition
-    rankingProduct: null // null = ranked by total across all products; a SH4 code = ranked by that product only
+    rankingProduct: null, // null = ranked by total across all products; a SH4 code = ranked by that product only
+    mapMode: "forest" // "forest" | "all" | "ratio" — shares state.year with the rest of the app
   };
 
   let dictionary, municipalityTotals, regionTotals, composition, products, muniComposition;
@@ -179,6 +230,23 @@
   let productRankingRowsByCode; // code -> [{municipio, ano, valor}]
   let productsByCode; // code -> {code, label_pt, label_en}, once loaded
   let rankingProductLabelToCode; // current-language short label -> code, for the datalist picker
+
+  // Map view (Leaflet): lazy-loaded on first visit, same rationale as the
+  // product ranking data — this is ~6MB (mostly state-boundary geometry)
+  // and most visits never open this view. Both the Leaflet library itself
+  // (CSS+JS, injected on demand — see ensureLeafletLoaded) and the map's
+  // own data stay out of every other view's cost entirely.
+  let leafletLoadPromise = null;
+  let mapDataPromise = null;
+  let mapData; // {municipios, categorias, produtos, cells}
+  let mapCellByKey; // "municipioIdx|ano|floresta" -> {categoriaIdx, produtoIdx, valor}
+  let leafletMap, mapLegendControl;
+  let mapLayersByCodIbge;
+  const MAP_NODATA_PATTERN_ID = "nodata-hatch";
+  const MAP_NODATA_BASE = "#deeaef";
+  const MAP_NODATA_LINE = "#a2adb1";
+  const MAP_RATIO_COLORS = { same: "#666666", nao: "#D55E00", sim: "#009E73" };
+
   let sparkSeries = [];
   let sparkXFor = null;
   let sparkYFor = null;
@@ -462,6 +530,257 @@
       state.rankingProduct && productsByCode ? rankingProductLabel(state.rankingProduct) : "";
   }
 
+  // ---- Map (Leaflet, lazy-loaded): a serverless rebuild of the separate
+  // original app_map_comex_exp_sh4_sel, folded in here as a view since
+  // it's the same COMEX municipality data, just a different lens (top
+  // exported product per municipality, colored by category) instead of a
+  // ranking/composition/trend. Neither the Leaflet library nor this view's
+  // ~6MB dataset load until the view is actually opened. ----
+
+  function ensureLeafletLoaded() {
+    if (leafletLoadPromise) return leafletLoadPromise;
+    leafletLoadPromise = new Promise((resolve, reject) => {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load Leaflet"));
+      document.head.appendChild(script);
+    });
+    return leafletLoadPromise;
+  }
+
+  function ensureMapDataLoaded() {
+    if (mapDataPromise) return mapDataPromise;
+    mapDataPromise = Promise.all([
+      fetchJson(`${DATA_DIR}/map/map_data.json`),
+      fetchJson(`${DATA_DIR}/map/municipalities.geojson`),
+      fetchJson(`${DATA_DIR}/map/states_boundary.geojson`),
+      fetchJson(`${DATA_DIR}/map/legal_amazon_boundary.geojson`)
+    ]).then(([data, municGeo, statesGeo, legalAmazonGeo]) => {
+      mapData = data;
+      mapCellByKey = new Map();
+      for (const [municipioIdx, ano, floresta, categoriaIdx, produtoIdx, valor] of data.cells) {
+        mapCellByKey.set(`${municipioIdx}|${ano}|${floresta}`, { categoriaIdx, produtoIdx, valor });
+      }
+      return { municGeo, statesGeo, legalAmazonGeo };
+    });
+    return mapDataPromise;
+  }
+
+  function ensureMapReady() {
+    return Promise.all([ensureLeafletLoaded(), ensureMapDataLoaded()]).then(([, geo]) => {
+      if (!leafletMap) initLeafletMap(geo.municGeo, geo.statesGeo, geo.legalAmazonGeo);
+    });
+  }
+
+  function getMapCell(municipioIdx, ano, floresta) {
+    return mapCellByKey.get(`${municipioIdx}|${ano}|${floresta}`);
+  }
+
+  // Ratio mode is derived client-side from the forest (floresta=1) and
+  // all-products (floresta=0) cells already loaded, mirroring the original
+  // app's classe_ratio logic exactly: if either side has no top product
+  // that year, there's not enough information to classify (no data) — a
+  // municipality with zero forest-compatible exports isn't "not
+  // forest-dominant", it's simply unclassifiable from this comparison.
+  function computeMapRatioClass(municipioIdx, ano) {
+    const cellAll = getMapCell(municipioIdx, ano, 0);
+    const cellForest = getMapCell(municipioIdx, ano, 1);
+    if (!cellAll || !cellForest || !(cellAll.valor > 0)) return null;
+    if (cellForest.produtoIdx === cellAll.produtoIdx) return "same";
+    return cellForest.valor / cellAll.valor < 1 ? "nao" : "sim";
+  }
+
+  function initLeafletMap(municGeo, statesGeo, legalAmazonGeo) {
+    leafletMap = L.map("map-container", { zoomControl: true }).setView([-7, -58], 5);
+
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+      maxZoom: 16
+    }).addTo(leafletMap);
+
+    leafletMap.createPane("paneMain");
+    leafletMap.getPane("paneMain").style.zIndex = 400;
+    leafletMap.createPane("paneBoundaries");
+    leafletMap.getPane("paneBoundaries").style.zIndex = 450;
+
+    L.geoJSON(statesGeo, { pane: "paneBoundaries", style: { color: "grey", weight: 1, fill: false }, interactive: false }).addTo(leafletMap);
+    L.geoJSON(legalAmazonGeo, { pane: "paneBoundaries", style: { color: "black", weight: 2, fill: false }, interactive: false }).addTo(leafletMap);
+
+    buildMapLayer(municGeo);
+
+    mapLegendControl = L.control({ position: "bottomright" });
+    mapLegendControl.onAdd = function () {
+      this._div = L.DomUtil.create("div", "legend");
+      return this._div;
+    };
+    mapLegendControl.addTo(leafletMap);
+  }
+
+  function mapStrokeColorFor(fillColor) {
+    return fillColor === "url(#" + MAP_NODATA_PATTERN_ID + ")" ? MAP_NODATA_LINE : fillColor;
+  }
+
+  function buildMapLayer(municGeo) {
+    mapLayersByCodIbge = new Map();
+    let openTooltipLayer = null;
+
+    L.geoJSON(municGeo, {
+      pane: "paneMain",
+      style: () => ({
+        className: "muni-path",
+        stroke: true,
+        weight: 1,
+        fillOpacity: 0.9,
+        fillColor: "#cccccc",
+        color: "#cccccc"
+      }),
+      onEachFeature: (feature, layer) => {
+        mapLayersByCodIbge.set(String(feature.properties.cod_ibge), layer);
+        layer.bindTooltip("", { sticky: true });
+
+        layer.on("mouseover", () => {
+          if (openTooltipLayer && openTooltipLayer !== layer) openTooltipLayer.closeTooltip();
+          openTooltipLayer = layer;
+          layer.setStyle({ weight: 5, color: "black", opacity: 1, fillOpacity: 1 });
+          layer.bringToFront();
+        });
+        layer.on("mouseout", () => {
+          if (openTooltipLayer === layer) openTooltipLayer = null;
+          layer.setStyle({ weight: 1, opacity: 1, fillOpacity: 0.9, color: mapStrokeColorFor(layer.options.fillColor) });
+        });
+      }
+    }).addTo(leafletMap);
+
+    ensureNoDataPattern("map-container");
+  }
+
+  // Injects an SVG <pattern> for the "no data" fill into the map's own SVG
+  // renderer, so polygons can set fillColor to `url(#nodata-hatch)`. Must
+  // run after the first polygon layer exists (that's what makes Leaflet
+  // create its SVG root).
+  function ensureNoDataPattern(containerId) {
+    const svg = document.querySelector("#" + containerId + " svg");
+    if (!svg || svg.querySelector("#" + MAP_NODATA_PATTERN_ID)) return;
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    defs.innerHTML =
+      '<pattern id="' + MAP_NODATA_PATTERN_ID + '" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+      '<rect width="6" height="6" fill="' + MAP_NODATA_BASE + '"></rect>' +
+      '<line x1="0" y1="0" x2="0" y2="6" stroke="' + MAP_NODATA_LINE + '" stroke-width="2"></line>' +
+      "</pattern>";
+    svg.insertBefore(defs, svg.firstChild);
+  }
+
+  function mapCategoryColor(categoriaIdx) {
+    if (categoriaIdx === -1) return OTHERS_COLOR;
+    return CATEGORY_COLORS[categoriaIdx] || OTHERS_COLOR;
+  }
+
+  function mapCategoryLabel(categoriaIdx, t) {
+    if (categoriaIdx === -1) return t.label_others;
+    return mapData.categorias[categoriaIdx] || t.label_others;
+  }
+
+  function fmtPct(v) {
+    return v.toLocaleString(state.lang === "en" ? "en-US" : "pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+  }
+
+  function mapTooltipHtml(t, municipio, cell, ratioClass) {
+    const rows = [
+      `${t.tooltip_municipio} <b>${municipio.nome}</b>`,
+      `${t.tooltip_estado} <b>${municipio.uf}</b>`
+    ];
+    if (state.mapMode === "ratio") {
+      const label = ratioClass === "same" ? t.ratio_same : ratioClass === "sim" ? t.ratio_sim : t.ratio_nao;
+      rows.push(`${t.tooltip_classe} <b>${label}</b>`);
+      if (cell) rows.push(`${t.tooltip_produto} <b>${mapData.produtos[cell.produtoIdx]}</b>`);
+    } else if (cell) {
+      rows.push(`${t.tooltip_produto} <b>${mapData.produtos[cell.produtoIdx]}</b>`);
+      rows.push(`${t.tooltip_categoria} <b>${mapCategoryLabel(cell.categoriaIdx, t)}</b>`);
+      rows.push(`${t.tooltip_valor} <b>${fmtPct(cell.valor)}</b>`);
+      rows.push(`<span style="font-size:0.85em;color:var(--muted);">${t.tooltip_valor_unidade}</span>`);
+    }
+    return rows.join("<br>");
+  }
+
+  function renderMap() {
+    const t = I18N[state.lang];
+    const container = document.getElementById("map-container");
+
+    if (!leafletMap) {
+      let loadingDiv = document.getElementById("map-loading");
+      if (!loadingDiv) {
+        loadingDiv = document.createElement("div");
+        loadingDiv.id = "map-loading";
+        loadingDiv.className = "map-loading";
+        container.parentElement.appendChild(loadingDiv);
+      }
+      loadingDiv.textContent = t.map_loading;
+      ensureMapReady().then(() => {
+        loadingDiv.remove();
+        if (state.view === "map") updateMapColors();
+      });
+      return;
+    }
+
+    // The map's container was hidden (display:none) until this view was
+    // selected, so Leaflet's internally-cached container size is stale —
+    // without this it renders tiles into a zero-size viewport.
+    leafletMap.invalidateSize();
+    updateMapColors();
+  }
+
+  function updateMapColors() {
+    if (!leafletMap) return;
+    const t = I18N[state.lang];
+    mapData.municipios.forEach((municipio, municipioIdx) => {
+      const layer = mapLayersByCodIbge.get(municipio.cod_ibge);
+      if (!layer) return;
+
+      let fillColor, cell, ratioClass;
+      if (state.mapMode === "ratio") {
+        ratioClass = computeMapRatioClass(municipioIdx, state.year);
+        cell = getMapCell(municipioIdx, state.year, 0);
+        fillColor = ratioClass ? MAP_RATIO_COLORS[ratioClass] : "url(#" + MAP_NODATA_PATTERN_ID + ")";
+      } else {
+        cell = getMapCell(municipioIdx, state.year, state.mapMode === "forest" ? 1 : 0);
+        fillColor = cell ? mapCategoryColor(cell.categoriaIdx) : "url(#" + MAP_NODATA_PATTERN_ID + ")";
+      }
+
+      layer.setStyle({ fillColor, color: mapStrokeColorFor(fillColor) });
+      layer.setTooltipContent(mapTooltipHtml(t, municipio, cell, ratioClass));
+    });
+    renderMapLegend(t);
+  }
+
+  // Legend is a fixed set (top-8 categories, or the 3 ratio classes) shown
+  // in full every time — never trimmed to "only what's present this year"
+  // — so the same color always means the same thing as you scrub the
+  // year slider (color follows the entity, not its per-year presence).
+  function renderMapLegend(t) {
+    const div = mapLegendControl.getContainer();
+    let html = "";
+    if (state.mapMode === "ratio") {
+      html += `<div class="legend-title">${t.legend_title_ratio}</div>`;
+      html += `<div class="legend-row"><span class="swatch" style="background:${MAP_RATIO_COLORS.sim}"></span>${t.ratio_sim}</div>`;
+      html += `<div class="legend-row"><span class="swatch" style="background:${MAP_RATIO_COLORS.nao}"></span>${t.ratio_nao}</div>`;
+      html += `<div class="legend-row"><span class="swatch" style="background:${MAP_RATIO_COLORS.same}"></span>${t.ratio_same}</div>`;
+    } else {
+      html += `<div class="legend-title">${t.legend_title_category}</div>`;
+      mapData.categorias.forEach((nome, i) => {
+        html += `<div class="legend-row"><span class="swatch" style="background:${CATEGORY_COLORS[i]}"></span>${nome}</div>`;
+      });
+      html += `<div class="legend-row"><span class="swatch" style="background:${OTHERS_COLOR}"></span>${t.label_others}</div>`;
+    }
+    html += `<div class="legend-row"><span class="swatch swatch-nodata"></span>${t.label_no_data}</div>`;
+    div.innerHTML = html;
+  }
+
   // ---- State init from query string ----
 
   function initState() {
@@ -478,13 +797,14 @@
     const qIndex = params.get("index");
     const qCompScope = params.get("compscope");
     const qRankProduct = params.get("rankproduct");
+    const qMapMode = params.get("mapmode");
 
     state.lang = qLang === "en" ? "en" : "pt";
     state.year = Number.isFinite(qYear) && qYear >= dictionary.year_inicio && qYear <= dictionary.year_final
       ? qYear
       : dictionary.year_final;
     state.topN = [10, 15, 20, 30].includes(qTopN) ? qTopN : 15;
-    state.view = ["ranking", "composition", "change", "trends", "explore"].includes(qView) ? qView : "ranking";
+    state.view = ["ranking", "composition", "change", "trends", "explore", "map"].includes(qView) ? qView : "ranking";
     state.changeState = ufList.includes(qState) ? qState : ufList[0];
     state.yearA = Number.isFinite(qYearA) && qYearA >= dictionary.year_inicio && qYearA <= dictionary.year_final
       ? qYearA
@@ -500,6 +820,7 @@
     // Validated once product_ranking.json is lazy-loaded (ensureProductRankingLoaded)
     // — the raw query value is kept provisionally so a shared URL still resolves.
     state.rankingProduct = qRankProduct || null;
+    state.mapMode = ["forest", "all", "ratio"].includes(qMapMode) ? qMapMode : "forest";
   }
 
   function updateUrl() {
@@ -516,6 +837,7 @@
     params.set("index", state.exploreIndex ? "1" : "0");
     params.set("compscope", state.compositionScope || "");
     params.set("rankproduct", state.rankingProduct || "");
+    params.set("mapmode", state.mapMode);
     history.replaceState(null, "", `?${params.toString()}`);
   }
 
@@ -554,6 +876,11 @@
     document.getElementById("view-change").addEventListener("click", () => setView("change"));
     document.getElementById("view-trends").addEventListener("click", () => setView("trends"));
     document.getElementById("view-explore").addEventListener("click", () => setView("explore"));
+    document.getElementById("view-map").addEventListener("click", () => setView("map"));
+
+    document.getElementById("map-mode-forest").addEventListener("click", () => setMapMode("forest"));
+    document.getElementById("map-mode-all").addEventListener("click", () => setMapMode("all"));
+    document.getElementById("map-mode-ratio").addEventListener("click", () => setMapMode("ratio"));
 
     // Curated dropdown renders immediately (hardcoded labels, see
     // PRODRANK_CURATED_LABELS) — no fetch until an actual product is picked.
@@ -682,11 +1009,13 @@
     document.getElementById("view-change").classList.toggle("active", view === "change");
     document.getElementById("view-trends").classList.toggle("active", view === "trends");
     document.getElementById("view-explore").classList.toggle("active", view === "explore");
+    document.getElementById("view-map").classList.toggle("active", view === "map");
     document.getElementById("ranking-panel").classList.toggle("hidden", view !== "ranking");
     document.getElementById("composition-panel").classList.toggle("hidden", view !== "composition");
     document.getElementById("change-panel").classList.toggle("hidden", view !== "change");
     document.getElementById("trends-panel").classList.toggle("hidden", view !== "trends");
     document.getElementById("explore-panel").classList.toggle("hidden", view !== "explore");
+    document.getElementById("map-panel").classList.toggle("hidden", view !== "map");
     // topn-group is shared between ranking (per-year top-N, optionally
     // filtered to one product) and trends (all-time top-N).
     document.getElementById("topn-group").classList.toggle("hidden", view !== "ranking" && view !== "trends");
@@ -694,7 +1023,18 @@
     document.getElementById("explore-group").classList.toggle("hidden", view !== "explore");
     document.getElementById("composition-scope-group").classList.toggle("hidden", view !== "composition");
     document.getElementById("ranking-product-group").classList.toggle("hidden", view !== "ranking");
+    document.getElementById("map-group").classList.toggle("hidden", view !== "map");
     document.querySelector(".slider-inline").classList.toggle("hidden", view === "change");
+    updateUrl();
+    render();
+  }
+
+  function setMapMode(mode) {
+    stopPlaying();
+    state.mapMode = mode;
+    document.getElementById("map-mode-forest").classList.toggle("active", mode === "forest");
+    document.getElementById("map-mode-all").classList.toggle("active", mode === "all");
+    document.getElementById("map-mode-ratio").classList.toggle("active", mode === "ratio");
     updateUrl();
     render();
   }
@@ -758,6 +1098,8 @@
       updateTrendsMarkers();
     } else if (state.view === "explore") {
       updateExploreGuide();
+    } else if (state.view === "map") {
+      updateMapColors();
     } else {
       renderRanking();
     }
@@ -818,6 +1160,7 @@
     document.getElementById("view-change").textContent = t.view_change;
     document.getElementById("view-trends").textContent = t.view_trends;
     document.getElementById("view-explore").textContent = t.view_explore;
+    document.getElementById("view-map").textContent = t.view_map;
     document.getElementById("ranking-axis-label").textContent = t.ranking_axis_label;
     document.getElementById("change-axis-label").textContent = t.change_axis_label;
     document.getElementById("label_state").textContent = t.label_state;
@@ -831,12 +1174,27 @@
     document.getElementById("composition-scope-select").options[0].textContent = t.composition_scope_region;
     document.getElementById("label_ranking_product_select").textContent = t.label_ranking_product_select;
     document.getElementById("label_ranking_product_search").textContent = t.label_ranking_product_search;
+    document.getElementById("label_map_mode").textContent = t.label_map_mode;
+    document.getElementById("map-mode-forest").textContent = t.map_mode_forest;
+    document.getElementById("map-mode-all").textContent = t.map_mode_all;
+    document.getElementById("map-mode-ratio").textContent = t.map_mode_ratio;
+    document.getElementById("map-hint").textContent = t.map_hint;
     document.getElementById("lang-toggle-label").textContent = t.btn_lang;
     // Repopulate the picker(s) too — option labels are language-specific.
     if (productRanking) populateRankingProductPicker(); else populateCuratedSelect();
 
-    const titles = { ranking: state.rankingProduct ? t.title_ranking_product.replace("{produto}", rankingProductShortLabel(state.rankingProduct)) : t.title_ranking, composition: state.compositionScope ? t.title_composition_muni.replace("{municipio}", state.compositionScope) : t.title_composition, change: t.title_change, trends: t.title_trends, explore: t.title_explore };
-    const subtitles = { ranking: t.subtitle_ranking, composition: state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition, change: t.subtitle_change, trends: t.subtitle_trends, explore: t.subtitle_explore };
+    const titles = {
+      ranking: state.rankingProduct ? t.title_ranking_product.replace("{produto}", rankingProductShortLabel(state.rankingProduct)) : t.title_ranking,
+      composition: state.compositionScope ? t.title_composition_muni.replace("{municipio}", state.compositionScope) : t.title_composition,
+      change: t.title_change, trends: t.title_trends, explore: t.title_explore,
+      map: t[`title_map_${state.mapMode}`]
+    };
+    const subtitles = {
+      ranking: t.subtitle_ranking,
+      composition: state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition,
+      change: t.subtitle_change, trends: t.subtitle_trends, explore: t.subtitle_explore,
+      map: t[`subtitle_map_${state.mapMode}`]
+    };
     document.getElementById("plot-title").textContent = titles[state.view];
     document.getElementById("plot-subtitle").textContent = subtitles[state.view];
 
@@ -853,6 +1211,8 @@
       renderTrends();
     } else if (state.view === "explore") {
       renderExplore();
+    } else if (state.view === "map") {
+      renderMap();
     } else {
       renderRanking();
     }

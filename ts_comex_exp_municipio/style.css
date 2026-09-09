@@ -704,4 +704,89 @@ html, body {
   margin-top: 4px;
 }
 
+/* ---- Map (Leaflet, lazy-loaded) view ---- */
+
+.map-hint {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.4;
+  margin-top: 6px;
+}
+
+.map-panel {
+  position: absolute;
+  inset: 0;
+}
+
+#map-container {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 12px var(--shadow);
+}
+
+.map-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+/* ---- Leaflet legend ---- */
+
+.legend {
+  background: #fff;
+  padding: 10px 12px 8px;
+  border-radius: 2px 2px 8px 8px;
+  border-top: 3px solid var(--sidebar-b);
+  box-shadow: 0 4px 14px var(--shadow);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  max-width: 240px;
+  color: var(--ink);
+}
+.legend .legend-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.legend .legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.legend .swatch {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* Matches the SVG hatch pattern used for "no data" polygons on the map
+   (ensureNoDataPattern in app.js) — same base/line colors, same 45deg
+   angle, so the legend swatch and the map fill read as the same thing. */
+.legend .swatch-nodata {
+  background-color: #deeaef;
+  background-image: repeating-linear-gradient(
+    45deg,
+    #a2adb1 0, #a2adb1 1.5px,
+    transparent 1.5px, transparent 6px
+  );
+}
+
+.leaflet-tooltip b { color: inherit; }
+
+/* Municipality fill animates between years instead of jump-cutting. */
+.muni-path {
+  transition: fill 300ms ease, fill-opacity 180ms ease;
+}
+
 .hidden { display: none; }
