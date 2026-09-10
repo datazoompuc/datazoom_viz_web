@@ -724,10 +724,6 @@ html, body {
   border-radius: 8px;
   border: 1px solid var(--border);
   box-shadow: 0 2px 12px var(--shadow);
-  /* No raster basemap (see initLeafletMap) — a plain neutral ground
-     instead of Leaflet's default white, so the map area still reads as
-     a distinct surface before any tiles or polygons paint. */
-  background: #eef1f0;
 }
 
 .map-loading {

@@ -603,19 +603,10 @@
   function initLeafletMap(municGeo, statesGeo, legalAmazonGeo) {
     leafletMap = L.map("map-container", { zoomControl: true }).setView([-7, -58], 5);
 
-    // No raster basemap: every free, keyless option checked bakes in more
-    // than we want. Esri's World_Light_Gray_Base's "minimal labels" still
-    // includes country names in the tile images themselves (not something
-    // a Leaflet-side layer toggle can remove — they're pre-rendered raster
-    // tiles, not vector features). CartoDB's light_nolabels tiles looked
-    // right (verified as a real, correctly-sized PNG before switching to
-    // them) but turned out to render an "API KEY REQUIRED" watermark once
-    // actually viewed — a 200 response with a valid image isn't the same
-    // as the real map style, and checking only the former missed it.
-    // The state + Legal Amazon boundary overlays below already carry
-    // enough geographic context for this choropleth; a plain background
-    // (#map-container's CSS) avoids depending on any tile provider's
-    // access policy at all.
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+      maxZoom: 16
+    }).addTo(leafletMap);
 
     leafletMap.createPane("paneMain");
     leafletMap.getPane("paneMain").style.zIndex = 400;
