@@ -41,7 +41,9 @@
       change_axis_label: "Valor exportado (US$)",
       view_trends: "Tendências",
       title_trends: "Tendências por município",
+      title_trends_category: "Tendências por município — {categoria}",
       subtitle_trends: "Top municípios por valor total exportado, 1997–2025",
+      subtitle_trends_category: "Top municípios por valor exportado na categoria, 1997–2025",
       label_since_prefix: "Desde ",
       view_explore: "Explorar",
       title_explore: "Comparar municípios",
@@ -55,6 +57,11 @@
       subtitle_composition_muni: "Categorias de produto exportadas, 1997–2025 — passe o mouse para ver o detalhamento",
       label_composition_scope: "Escopo",
       composition_scope_region: "Toda a Amazônia Legal",
+      label_agg_level: "Nível de agregação",
+      agg_level_sec: "Seção (SEC)",
+      agg_level_sh2: "Capítulo (SH2)",
+      agg_level_sh4: "Produto específico (SH4)",
+      label_category: "Categoria",
       title_ranking_product: "Ranking de municípios exportadores — {produto}",
       label_ranking_product_select: "Produto",
       label_ranking_product_search: "Ou busque outro produto (todos os SH4)",
@@ -122,7 +129,9 @@
       change_axis_label: "Export value (US$)",
       view_trends: "Trends",
       title_trends: "Trends by municipality",
+      title_trends_category: "Trends by municipality — {categoria}",
       subtitle_trends: "Top municipalities by total export value, 1997–2025",
+      subtitle_trends_category: "Top municipalities by export value in the category, 1997–2025",
       label_since_prefix: "Since ",
       view_explore: "Explore",
       title_explore: "Compare municipalities",
@@ -136,6 +145,11 @@
       subtitle_composition_muni: "Product categories exported, 1997–2025 — hover to see the breakdown",
       label_composition_scope: "Scope",
       composition_scope_region: "Whole Legal Amazon",
+      label_agg_level: "Aggregation level",
+      agg_level_sec: "Section (SEC)",
+      agg_level_sh2: "Chapter (SH2)",
+      agg_level_sh4: "Specific product (SH4)",
+      label_category: "Category",
       title_ranking_product: "Ranking of exporting municipalities — {produto}",
       label_ranking_product_select: "Product",
       label_ranking_product_search: "Or search another product (all SH4)",
@@ -209,18 +223,36 @@
     exploreLog: false,
     exploreIndex: false,
     compositionScope: null, // null = whole-region composition; a municipio name = that place's own composition
-    rankingProduct: null, // null = ranked by total across all products; a SH4 code = ranked by that product only
+    compositionAgg: "sec", // "sec" | "sh2" — which product-category taxonomy the Composição chart uses
+    rankingAggLevel: "all", // "all" | "sec" | "sh2" | "sh4" — what Ranking is filtered by
+    rankingCategory: null, // selected SEC or SH2 category name, used when rankingAggLevel is "sec"/"sh2"
+    rankingProduct: null, // selected SH4 code, used when rankingAggLevel is "sh4"
+    trendsAggLevel: "all", // "all" | "sec" | "sh2" — what Tendências is filtered by
+    trendsCategory: null, // selected SEC or SH2 category name, used when trendsAggLevel is "sec"/"sh2"
     mapMode: "forest" // "forest" | "all" | "ratio" — shares state.year with the rest of the app
   };
 
-  let dictionary, municipalityTotals, regionTotals, composition, products, muniComposition;
+  // SEC (22 broad sections) is the default product-category taxonomy, so
+  // its data loads eagerly at startup — matches the original Shiny app's
+  // own default (its "Selecione agregação do produto" toggle also opened
+  // on SEC). SH2 (97 finer chapters) is the same idea at a different
+  // granularity, offered as an equal alternative in Composição and as an
+  // additional filter tier in Ranking/Tendências — but it's fetched lazily
+  // (see ensureSh2Loaded), same rationale as the SH4 product-ranking data:
+  // most visits never pick it, so it shouldn't cost anything until they do.
+  let dictionary, municipalityTotals, regionTotals;
+  let compositionSec, productsSec, muniCompositionSec;
+  let compositionSeriesSec; // [{ produto, color, isOthers, values: Map(year -> valor) }], top-8 + Outros, fixed order
+  let compositionIndexSec; // { byMunicipio: Map(municipio -> [{produto,ano,valor}]), byProduto: Map(produto -> [{municipio,ano,valor}]) }
+  let sh2LoadPromise = null;
+  let compositionSh2, productsSh2, muniCompositionSh2;
+  let compositionSeriesSh2;
+  let compositionIndexSh2;
   let totalsByYear; // year -> [{municipio, valor}], sorted descending
   let regionTotalByYear; // year -> valor
-  let compositionSeries; // [{ produto, color, isOthers, values: Map(year -> valor) }], top-8 + Outros, fixed order
   let totalsByMunicipio; // municipio -> Map(year -> valor)
   let municipioMeta; // municipio -> { uf }
   let ufList; // sorted distinct UF codes
-  let muniCompositionRowsByMuni; // municipio -> [{produto, ano, valor}], only municipalities with any exports
   let activeCompositionSeries; // whichever series (region or a municipio) is currently rendered, for the hover handler
 
   // Product-filtered ranking (SH4-level, ~1,142 specific products vs. the 22
@@ -259,23 +291,23 @@
     fetchJson(`${DATA_DIR}/dictionary.json`),
     fetchJson(`${DATA_DIR}/municipality_totals.json`),
     fetchJson(`${DATA_DIR}/region_totals.json`),
-    fetchJson(`${DATA_DIR}/composition.json`),
-    fetchJson(`${DATA_DIR}/products.json`),
-    fetchJson(`${DATA_DIR}/municipality_composition.json`)
+    fetchJson(`${DATA_DIR}/composition_sec.json`),
+    fetchJson(`${DATA_DIR}/products_sec.json`),
+    fetchJson(`${DATA_DIR}/municipality_composition_sec.json`)
   ]).then(([dict, munTotals, regTotals, comp, prod, muniComp]) => {
     dictionary = dict;
     municipalityTotals = munTotals;
     regionTotals = regTotals;
-    composition = comp;
-    products = prod;
-    muniComposition = muniComp;
+    compositionSec = comp;
+    productsSec = prod;
+    muniCompositionSec = muniComp;
 
     totalsByYear = groupByYear(municipalityTotals);
     regionTotalByYear = new Map(regionTotals.map((r) => [r.ano, r.valor]));
-    compositionSeries = buildCompositionSeries(composition, dictionary);
-    activeCompositionSeries = compositionSeries;
+    compositionSeriesSec = buildCompositionSeries(compositionSec, dictionary);
+    activeCompositionSeries = compositionSeriesSec;
     ({ totalsByMunicipio, municipioMeta, ufList } = buildMunicipioIndex(municipalityTotals));
-    muniCompositionRowsByMuni = buildMuniCompositionIndex(muniComposition);
+    compositionIndexSec = buildCompositionIndexes(muniCompositionSec);
 
     initState();
     initControls();
@@ -327,21 +359,49 @@
     return { totalsByMunicipio: byMuni, municipioMeta: meta, ufList: ufs };
   }
 
-  // municipality_composition.json ships as index-referencing [municipio_idx,
-  // produto_idx, ano, valor] cells (zero-value cells dropped) rather than
-  // one JSON object per municipio x produto x year — the full grid is 96%
-  // zero, so this cuts the payload from ~285k rows to ~18k. Expand once
-  // into the same {produto, ano, valor} row shape buildCompositionSeries()
-  // already consumes for the region-wide chart.
-  function buildMuniCompositionIndex(data) {
-    const byMuni = new Map();
+  // municipality_composition_{sec,sh2}.json ship as index-referencing
+  // [municipio_idx, produto_idx, ano, valor] cells (zero-value cells
+  // dropped) rather than one JSON object per municipio x produto x year —
+  // the full grid is 89-93% zero, so this cuts the payload by an order of
+  // magnitude. Expanded once into two lookup directions from the same
+  // cells: byMunicipio (municipio -> [{produto,ano,valor}]) feeds
+  // Composição's per-municipality scope via buildCompositionSeries();
+  // byProduto (produto -> [{municipio,ano,valor}]) is the same cells read
+  // the other way, feeding Ranking's and Tendências' category filters.
+  function buildCompositionIndexes(data) {
+    const byMunicipio = new Map();
+    const byProduto = new Map();
     for (const [municipioIdx, produtoIdx, ano, valor] of data.cells) {
       const municipio = data.municipios[municipioIdx];
       const produto = data.produtos[produtoIdx];
-      if (!byMuni.has(municipio)) byMuni.set(municipio, []);
-      byMuni.get(municipio).push({ produto, ano, valor });
+      if (!byMunicipio.has(municipio)) byMunicipio.set(municipio, []);
+      byMunicipio.get(municipio).push({ produto, ano, valor });
+      if (!byProduto.has(produto)) byProduto.set(produto, []);
+      byProduto.get(produto).push({ municipio, ano, valor });
     }
-    return byMuni;
+    return { byMunicipio, byProduto };
+  }
+
+  // ---- SH2 aggregation: lazy-loaded the first time any view needs it
+  // (Composição's aggregation toggle, or Ranking's/Tendências' category
+  // filter set to "sh2") — same rationale as the SH4 product-ranking data:
+  // SEC is the default taxonomy everywhere, so SH2's ~900KB shouldn't cost
+  // anything until someone actually asks for the finer breakdown. ----
+
+  function ensureSh2Loaded() {
+    if (sh2LoadPromise) return sh2LoadPromise;
+    sh2LoadPromise = Promise.all([
+      fetchJson(`${DATA_DIR}/composition_sh2.json`),
+      fetchJson(`${DATA_DIR}/municipality_composition_sh2.json`),
+      fetchJson(`${DATA_DIR}/products_sh2.json`)
+    ]).then(([comp, muniComp, prod]) => {
+      compositionSh2 = comp;
+      muniCompositionSh2 = muniComp;
+      productsSh2 = prod;
+      compositionSeriesSh2 = buildCompositionSeries(compositionSh2, dictionary);
+      compositionIndexSh2 = buildCompositionIndexes(muniCompositionSh2);
+    });
+    return sh2LoadPromise;
   }
 
   // ---- Product ranking (SH4): lazy-loaded on first visit to that view ----
@@ -454,6 +514,25 @@
     return curated ? curated[state.lang] : code;
   }
 
+  // Whatever's currently narrowing Ranking, across all three filterable
+  // tiers, as a short display label for the title — or null when
+  // "Todos os produtos" applies and the title should stay generic.
+  function currentRankingFilterLabel() {
+    if (state.rankingAggLevel === "sh4" && state.rankingProduct) return rankingProductShortLabel(state.rankingProduct);
+    if ((state.rankingAggLevel === "sec" || state.rankingAggLevel === "sh2") && state.rankingCategory) {
+      return categoryShortLabelFor(state.rankingAggLevel, state.rankingCategory);
+    }
+    return null;
+  }
+
+  // Same idea for Tendências' category filter (no SH4 tier there).
+  function currentTrendsFilterLabel() {
+    if ((state.trendsAggLevel === "sec" || state.trendsAggLevel === "sh2") && state.trendsCategory) {
+      return categoryShortLabelFor(state.trendsAggLevel, state.trendsCategory);
+    }
+    return null;
+  }
+
   // Curated dropdown works before the 1MB dataset loads (labels come from
   // PRODRANK_CURATED_LABELS) — safe to call at init and again after load
   // (rankingProductShortLabel switches to the live official data once
@@ -532,6 +611,79 @@
     input.value = state.rankingProduct ? rankingProductShortLabel(state.rankingProduct) : "";
     document.getElementById("ranking-product-full-label").textContent =
       state.rankingProduct && productsByCode ? rankingProductLabel(state.rankingProduct) : "";
+  }
+
+  // Shows/hides Ranking's category-select vs. SH4 curated+search groups to
+  // match the currently chosen aggregation tier, and keeps the tier
+  // <select> itself in sync (needed after a URL-restored state, not just
+  // after a user click).
+  function syncRankingAggControls() {
+    document.getElementById("ranking-agg-level-select").value = state.rankingAggLevel;
+    document.getElementById("ranking-category-group").classList.toggle("hidden", state.rankingAggLevel !== "sec" && state.rankingAggLevel !== "sh2");
+    document.getElementById("ranking-sh4-group").classList.toggle("hidden", state.rankingAggLevel !== "sh4");
+    if (state.rankingAggLevel === "sh4") syncRankingProductControls();
+  }
+
+  // Populates ranking-category-select from productsSec/productsSh2 (whichever
+  // state.rankingAggLevel names) — a no-op if that dict isn't loaded yet
+  // (SH2 before its lazy fetch resolves); the caller re-invokes this once
+  // it has. Defaults to the alphabetically-first category if none is
+  // selected yet, or the previous selection no longer exists in this level.
+  // Sorted {value,label} category list for a level's <select> options —
+  // shared by Ranking's and Tendências' category pickers, since both list
+  // the exact same SEC/SH2 categories. Returns null if that level's dict
+  // isn't loaded yet (SH2 before its lazy fetch resolves).
+  function categoryOptionsFor(level) {
+    const dict = categoryDictFor(level);
+    if (!dict) return null;
+    const list = dict[state.lang] || dict.pt;
+    return list.map((p) => ({ value: p.var, label: p.label })).sort((a, b) => a.label.localeCompare(b.label, state.lang));
+  }
+
+  function populateRankingCategorySelect() {
+    const level = state.rankingAggLevel;
+    const select = document.getElementById("ranking-category-select");
+    select.innerHTML = "";
+    if (level !== "sec" && level !== "sh2") return;
+    const items = categoryOptionsFor(level);
+    if (!items) return;
+    for (const { value, label } of items) {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = label;
+      select.appendChild(opt);
+    }
+    if (!state.rankingCategory || !items.some((i) => i.value === state.rankingCategory)) {
+      state.rankingCategory = items.length ? items[0].value : null;
+    }
+    select.value = state.rankingCategory || "";
+  }
+
+  function populateTrendsCategorySelect() {
+    const level = state.trendsAggLevel;
+    const select = document.getElementById("trends-category-select");
+    select.innerHTML = "";
+    if (level !== "sec" && level !== "sh2") return;
+    const items = categoryOptionsFor(level);
+    if (!items) return;
+    for (const { value, label } of items) {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = label;
+      select.appendChild(opt);
+    }
+    if (!state.trendsCategory || !items.some((i) => i.value === state.trendsCategory)) {
+      state.trendsCategory = items.length ? items[0].value : null;
+    }
+    select.value = state.trendsCategory || "";
+  }
+
+  // Shows/hides Tendências' category-select to match the currently chosen
+  // aggregation tier, and keeps the tier <select> itself in sync (needed
+  // after a URL-restored state, not just after a user click).
+  function syncTrendsAggControls() {
+    document.getElementById("trends-agg-level-select").value = state.trendsAggLevel;
+    document.getElementById("trends-category-group").classList.toggle("hidden", state.trendsAggLevel !== "sec" && state.trendsAggLevel !== "sh2");
   }
 
   // ---- Map (Leaflet, lazy-loaded): a serverless rebuild of the separate
@@ -817,7 +969,12 @@
     const qLog = params.get("log");
     const qIndex = params.get("index");
     const qCompScope = params.get("compscope");
+    const qCompAgg = params.get("compagg");
+    const qRankAggLevel = params.get("rankagglevel");
+    const qRankCategory = params.get("rankcategory");
     const qRankProduct = params.get("rankproduct");
+    const qTrendsAggLevel = params.get("trendsagglevel");
+    const qTrendsCategory = params.get("trendscategory");
     const qMapMode = params.get("mapmode");
 
     state.lang = qLang === "en" ? "en" : "pt";
@@ -837,10 +994,16 @@
     state.exploreMunis = decodedMunis.length ? decodedMunis : computeTrendMunicipalities(5);
     state.exploreLog = qLog === "1";
     state.exploreIndex = qIndex === "1";
-    state.compositionScope = qCompScope && muniCompositionRowsByMuni.has(qCompScope) ? qCompScope : null;
-    // Validated once product_ranking.json is lazy-loaded (ensureProductRankingLoaded)
+    state.compositionScope = qCompScope && compositionIndexSec.byMunicipio.has(qCompScope) ? qCompScope : null;
+    state.compositionAgg = qCompAgg === "sh2" ? "sh2" : "sec";
+    state.rankingAggLevel = ["all", "sec", "sh2", "sh4"].includes(qRankAggLevel) ? qRankAggLevel : "all";
+    // Category/product selections are validated once their aggregation's
+    // data is loaded (SH2: ensureSh2Loaded; SH4: ensureProductRankingLoaded)
     // — the raw query value is kept provisionally so a shared URL still resolves.
+    state.rankingCategory = qRankCategory || null;
     state.rankingProduct = qRankProduct || null;
+    state.trendsAggLevel = ["all", "sec", "sh2"].includes(qTrendsAggLevel) ? qTrendsAggLevel : "all";
+    state.trendsCategory = qTrendsCategory || null;
     state.mapMode = ["forest", "all", "ratio"].includes(qMapMode) ? qMapMode : "forest";
   }
 
@@ -857,7 +1020,12 @@
     params.set("log", state.exploreLog ? "1" : "0");
     params.set("index", state.exploreIndex ? "1" : "0");
     params.set("compscope", state.compositionScope || "");
+    params.set("compagg", state.compositionAgg);
+    params.set("rankagglevel", state.rankingAggLevel);
+    params.set("rankcategory", state.rankingCategory || "");
     params.set("rankproduct", state.rankingProduct || "");
+    params.set("trendsagglevel", state.trendsAggLevel);
+    params.set("trendscategory", state.trendsCategory || "");
     params.set("mapmode", state.mapMode);
     history.replaceState(null, "", `?${params.toString()}`);
   }
@@ -934,12 +1102,64 @@
       else render();
     });
 
+    // ---- Ranking's aggregation-level tier: "all" (existing default),
+    // "sec"/"sh2" (new — a category filter, same idea as the original
+    // Shiny app's SEC/SH2 toggle, applied to this bar-chart ranking
+    // instead of a line chart), "sh4" (existing specific-product picker
+    // above, just now nested under this tier instead of being the app's
+    // only alternative to "all"). ----
+
+    const rankingAggLevelSelect = document.getElementById("ranking-agg-level-select");
+    rankingAggLevelSelect.addEventListener("change", (e) => {
+      state.rankingAggLevel = e.target.value;
+      updateUrl();
+      syncRankingAggControls();
+      populateRankingCategorySelect(); // no-ops if SH2 isn't loaded yet — render()'s own dispatch path owns that fetch + shows the loading state
+      render();
+    });
+
+    const rankingCategorySelect = document.getElementById("ranking-category-select");
+    rankingCategorySelect.addEventListener("change", (e) => {
+      state.rankingCategory = e.target.value || null;
+      updateUrl();
+      render();
+    });
+
+    // SEC's category list can populate immediately (already loaded); SH2's
+    // stays empty until its own render path lazy-loads it — same
+    // self-healing pattern as Composição's aggregation toggle.
+    syncRankingAggControls();
+    populateRankingCategorySelect();
+
+    // ---- Tendências' aggregation-level tier: same idea as Ranking's,
+    // minus the SH4 tier (trending one specific product's top exporters
+    // is a bigger, more novel feature than what was asked for here). ----
+
+    const trendsAggLevelSelect = document.getElementById("trends-agg-level-select");
+    trendsAggLevelSelect.addEventListener("change", (e) => {
+      state.trendsAggLevel = e.target.value;
+      updateUrl();
+      syncTrendsAggControls();
+      populateTrendsCategorySelect(); // no-ops if SH2 isn't loaded yet — trendsDataSource()/renderTrends() own that fetch + the loading state
+      render();
+    });
+
+    const trendsCategorySelect = document.getElementById("trends-category-select");
+    trendsCategorySelect.addEventListener("change", (e) => {
+      state.trendsCategory = e.target.value || null;
+      updateUrl();
+      render();
+    });
+
+    syncTrendsAggControls();
+    populateTrendsCategorySelect();
+
     const compositionScopeSelect = document.getElementById("composition-scope-select");
     const regionOpt = document.createElement("option");
     regionOpt.value = "";
     regionOpt.textContent = I18N[state.lang].composition_scope_region;
     compositionScopeSelect.appendChild(regionOpt);
-    const compositionScopeMunis = computeTrendMunicipalities(municipioMeta.size).filter((m) => muniCompositionRowsByMuni.has(m));
+    const compositionScopeMunis = computeTrendMunicipalities(municipioMeta.size).filter((m) => compositionIndexSec.byMunicipio.has(m));
     for (const municipio of compositionScopeMunis) {
       const opt = document.createElement("option");
       opt.value = municipio;
@@ -951,6 +1171,14 @@
       state.compositionScope = e.target.value || null;
       updateUrl();
       render(); // title is scope-dependent ("Composição — {municipio}"), not just the chart
+    });
+
+    const compositionAggSelect = document.getElementById("composition-agg-select");
+    compositionAggSelect.value = state.compositionAgg;
+    compositionAggSelect.addEventListener("change", (e) => {
+      state.compositionAgg = e.target.value;
+      updateUrl();
+      render(); // title/legend depend on the aggregation too, not just the chart
     });
 
     const munisSelect = document.getElementById("explore-munis-select");
@@ -1044,6 +1272,7 @@
     document.getElementById("explore-group").classList.toggle("hidden", view !== "explore");
     document.getElementById("composition-scope-group").classList.toggle("hidden", view !== "composition");
     document.getElementById("ranking-product-group").classList.toggle("hidden", view !== "ranking");
+    document.getElementById("trends-agg-group").classList.toggle("hidden", view !== "trends");
     document.getElementById("map-group").classList.toggle("hidden", view !== "map");
     document.querySelector(".slider-inline").classList.toggle("hidden", view === "change");
     updateUrl();
@@ -1193,27 +1422,57 @@
     document.getElementById("label_index_first").textContent = t.label_index_first;
     document.getElementById("label_composition_scope").textContent = t.label_composition_scope;
     document.getElementById("composition-scope-select").options[0].textContent = t.composition_scope_region;
+    document.getElementById("label_composition_agg").textContent = t.label_agg_level;
+    document.getElementById("label_ranking_agg_level").textContent = t.label_agg_level;
+    document.getElementById("label_ranking_category").textContent = t.label_category;
     document.getElementById("label_ranking_product_select").textContent = t.label_ranking_product_select;
     document.getElementById("label_ranking_product_search").textContent = t.label_ranking_product_search;
+    document.getElementById("label_trends_agg_level").textContent = t.label_agg_level;
+    document.getElementById("label_trends_category").textContent = t.label_category;
     document.getElementById("label_map_mode").textContent = t.label_map_mode;
     document.getElementById("map-mode-forest").textContent = t.map_mode_forest;
     document.getElementById("map-mode-all").textContent = t.map_mode_all;
     document.getElementById("map-mode-ratio").textContent = t.map_mode_ratio;
     document.getElementById("map-hint").textContent = t.map_hint;
     document.getElementById("lang-toggle-label").textContent = t.btn_lang;
+
+    // Aggregation-level <option> text is language-specific, set here rather
+    // than hardcoded in the HTML (same convention as the scope select's
+    // first option above).
+    const setAggOptionLabels = (selectId) => {
+      const select = document.getElementById(selectId);
+      for (const opt of select.options) {
+        if (opt.value === "all") opt.textContent = t.ranking_product_all;
+        else if (opt.value === "sec") opt.textContent = t.agg_level_sec;
+        else if (opt.value === "sh2") opt.textContent = t.agg_level_sh2;
+        else if (opt.value === "sh4") opt.textContent = t.agg_level_sh4;
+      }
+    };
+    setAggOptionLabels("composition-agg-select");
+    setAggOptionLabels("ranking-agg-level-select");
+    setAggOptionLabels("trends-agg-level-select");
+
     // Repopulate the picker(s) too — option labels are language-specific.
     if (productRanking) populateRankingProductPicker(); else populateCuratedSelect();
+    populateRankingCategorySelect();
+    populateTrendsCategorySelect();
 
+    const rankingFilterLabel = currentRankingFilterLabel();
+    const trendsFilterLabel = currentTrendsFilterLabel();
     const titles = {
-      ranking: state.rankingProduct ? t.title_ranking_product.replace("{produto}", rankingProductShortLabel(state.rankingProduct)) : t.title_ranking,
+      ranking: rankingFilterLabel ? t.title_ranking_product.replace("{produto}", rankingFilterLabel) : t.title_ranking,
       composition: state.compositionScope ? t.title_composition_muni.replace("{municipio}", state.compositionScope) : t.title_composition,
-      change: t.title_change, trends: t.title_trends, explore: t.title_explore,
+      change: t.title_change,
+      trends: trendsFilterLabel ? t.title_trends_category.replace("{categoria}", trendsFilterLabel) : t.title_trends,
+      explore: t.title_explore,
       map: t[`title_map_${state.mapMode}`]
     };
     const subtitles = {
       ranking: t.subtitle_ranking,
       composition: state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition,
-      change: t.subtitle_change, trends: t.subtitle_trends, explore: t.subtitle_explore,
+      change: t.subtitle_change,
+      trends: trendsFilterLabel ? t.subtitle_trends_category : t.subtitle_trends,
+      explore: t.subtitle_explore,
       map: t[`subtitle_map_${state.mapMode}`]
     };
     document.getElementById("plot-title").textContent = titles[state.view];
@@ -1241,15 +1500,29 @@
 
   const RANKING_IDS = { rows: "ranking-rows", tooltip: "ranking-tooltip", panel: "ranking-panel" };
 
-  // Ranking is one chart (top-N municipalities for a year) fed by two
-  // possible measures: total value across all products (rankingProduct
-  // === null, using the always-loaded totalsByYear) or one specific
-  // product's value (using the lazily-loaded productRankingRowsByCode).
+  // Ranking is one chart (top-N municipalities for a year) fed by any of
+  // four measures: total value across all products (the default), a SEC
+  // or SH2 category's value (compositionIndexSec/Sh2's byProduto,
+  // inverted from the same data Composição uses), or one specific SH4
+  // product's value (the lazily-loaded productRankingRowsByCode). The
+  // first three share compositionIndex* with Composição; SH4 stays its
+  // own lazy fetch since it's a much larger, separate dataset.
   function renderRanking() {
     const t = I18N[state.lang];
 
-    if (state.rankingProduct) {
+    if (state.rankingAggLevel === "sh4" && state.rankingProduct) {
       renderRankingByProduct(t);
+      return;
+    }
+    // No "&& state.rankingCategory" guard here — dropped deliberately.
+    // Requiring a category to already be selected before dispatching here
+    // meant switching straight to "sec"/"sh2" without ever touching the
+    // category dropdown (e.g. a URL deep link, or picking "sh2" as your
+    // very first action) fell through to the "all products" branch below
+    // instead of loading anything. renderRankingByCategory() now owns
+    // assigning a default category itself once its data is available.
+    if (state.rankingAggLevel === "sec" || state.rankingAggLevel === "sh2") {
+      renderRankingByCategory(t, state.rankingAggLevel);
       return;
     }
 
@@ -1268,22 +1541,9 @@
     container.appendChild(frag);
   }
 
-  // Ranking filtered to one specific product — same top-N bar list, rows
-  // come from that product's municipality breakdown (lazily loaded)
-  // instead of the always-available cross-product totals.
-  function renderRankingByProduct(t) {
-    const container = document.getElementById(RANKING_IDS.rows);
-
-    if (!productRanking) {
-      container.innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
-      document.getElementById("region-total-label").textContent = "";
-      ensureProductRankingLoaded().then(() => {
-        if (state.view === "ranking" && state.rankingProduct) render();
-      });
-      return;
-    }
-
-    const allRows = productRankingRowsByCode.get(state.rankingProduct) || [];
+  // Shared by both filtered modes below: given every year's rows for one
+  // product/category, render the current year's top-N as ranked bars.
+  function renderRankingFromRows(t, allRows) {
     const rows = allRows
       .filter((r) => r.ano === state.year)
       .map((r) => ({ municipio: r.municipio, valor: r.valor }))
@@ -1295,10 +1555,52 @@
     document.getElementById("region-total-label").innerHTML =
       rows.length ? t.ranking_product_total_prefix + "<b>" + fmtAbbrev(yearTotal) + "</b>" : "";
 
+    const container = document.getElementById(RANKING_IDS.rows);
     container.innerHTML = "";
     const frag = document.createDocumentFragment();
     top.forEach((row, i) => frag.appendChild(buildRankRow(row, i, maxVal, RANKING_IDS)));
     container.appendChild(frag);
+  }
+
+  // Ranking filtered to one specific product — rows come from that
+  // product's municipality breakdown (lazily loaded) instead of the
+  // always-available cross-product totals.
+  function renderRankingByProduct(t) {
+    if (!productRanking) {
+      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+      document.getElementById("region-total-label").textContent = "";
+      ensureProductRankingLoaded().then(() => {
+        if (state.view === "ranking" && state.rankingAggLevel === "sh4" && state.rankingProduct) render();
+      });
+      return;
+    }
+    renderRankingFromRows(t, productRankingRowsByCode.get(state.rankingProduct) || []);
+  }
+
+  // Ranking filtered to one SEC or SH2 category — rows come from the same
+  // per-municipality composition data Composição uses, read the other way
+  // (byProduto instead of byMunicipio). SEC is always already loaded; SH2
+  // lazy-loads the first time it's actually selected. Owns assigning a
+  // default category (via populateRankingCategorySelect) whenever
+  // state.rankingCategory is missing or doesn't exist in this level's
+  // taxonomy — not just the caller's job — so this is correct whether
+  // reached via a click (which already tries to populate first) or a cold
+  // URL deep link straight into "sec"/"sh2" with no category set.
+  function renderRankingByCategory(t, level) {
+    const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
+    if (!index) {
+      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+      document.getElementById("region-total-label").textContent = "";
+      ensureSh2Loaded().then(() => {
+        populateRankingCategorySelect();
+        if (state.view === "ranking" && state.rankingAggLevel === level) render();
+      });
+      return;
+    }
+    if (!state.rankingCategory || !index.byProduto.has(state.rankingCategory)) {
+      populateRankingCategorySelect();
+    }
+    renderRankingFromRows(t, (state.rankingCategory && index.byProduto.get(state.rankingCategory)) || []);
   }
 
   function buildRankRow(row, index, maxVal, ids) {
@@ -1400,35 +1702,93 @@
     return series;
   }
 
-  function productLabel(produto) {
+  // Both the region-wide series (built once at load/lazy-load time from
+  // composition_{sec,sh2}.json) and every per-municipality series (rebuilt
+  // client-side from municipality_composition_{sec,sh2}.json) store their
+  // categories as raw PT names, not display labels — categoryLabelFor()
+  // resolves the actual language/aggregation-specific label at render
+  // time, so a single series object works under a lang toggle without
+  // rebuilding it.
+  function categoryDictFor(level) {
+    return level === "sh2" ? productsSh2 : productsSec;
+  }
+
+  function categoryLabelFor(level, produto) {
     if (produto === null) return I18N[state.lang].label_others;
-    const list = products[state.lang] || products.pt;
+    const dict = categoryDictFor(level);
+    const list = (dict && (dict[state.lang] || dict.pt)) || [];
     const hit = list.find((p) => p.var === produto);
     return hit ? hit.label : produto;
   }
 
-  // Official SEC category names are long compound clauses joined by ";"
+  // Official SEC/SH2 category names are long compound clauses joined by ";"
   // (e.g. "Madeira, carvão vegetal e obras de madeira; Cortiça e suas
   // obras..."). Cutting at the first clause boundary reads as a clean short
   // name instead of an arbitrary mid-word ellipsis.
-  function productShortLabel(produto) {
-    const full = productLabel(produto);
+  function categoryShortLabelFor(level, produto) {
+    const full = categoryLabelFor(level, produto);
     const clause = full.split(";")[0].trim();
     return clause.length > 60 ? clause.slice(0, 57).trimEnd() + "…" : clause;
   }
 
-  // One view, two scopes: region-wide (compositionScope === null, using the
-  // precomputed compositionSeries) or a single municipality (recomputed from
-  // muniCompositionRowsByMuni on each selection, since which categories rank
-  // in someone's own top-8 depends on that place, not the region). Same
-  // stacked-area chart either way, via renderStackedComposition/
-  // updateStackedGuide/renderStackedLegend/initStackedHover.
+  // Composição's own product-label helpers dispatch on state.compositionAgg
+  // — this view is the only consumer of renderStackedComposition/
+  // renderStackedLegend/initStackedHover, so reading the view's own current
+  // aggregation directly here (rather than threading a level parameter
+  // through all three) is safe and keeps that shared rendering code
+  // untouched. Ranking's and Tendências' own category filters have their
+  // own, independent aggregation choice — they call categoryLabelFor(level, …)
+  // directly instead, since "level" there isn't always state.compositionAgg.
+  function productLabel(produto) {
+    return categoryLabelFor(state.compositionAgg, produto);
+  }
+
+  function productShortLabel(produto) {
+    return categoryShortLabelFor(state.compositionAgg, produto);
+  }
+
+  // One view, two independent controls: scope (region-wide vs. a single
+  // municipality, recomputed from that place's own municipality_composition
+  // rows, since which categories rank in someone's own top-8 depends on
+  // that place, not the region) and aggregation (SEC's 22 broad sections vs.
+  // SH2's 97 finer chapters — a toggle the original Shiny app offered that
+  // the first pass of this rebuild dropped). Same stacked-area chart
+  // either way, via renderStackedComposition/updateStackedGuide/
+  // renderStackedLegend/initStackedHover.
 
   function renderComposition() {
+    if (state.compositionAgg === "sh2" && !compositionIndexSh2) {
+      showCompositionLoading();
+      ensureSh2Loaded().then(() => {
+        if (state.view === "composition") render();
+      });
+      return;
+    }
+    hideCompositionLoading();
+
+    const series = state.compositionAgg === "sh2" ? compositionSeriesSh2 : compositionSeriesSec;
+    const index = state.compositionAgg === "sh2" ? compositionIndexSh2 : compositionIndexSec;
     activeCompositionSeries = state.compositionScope
-      ? buildCompositionSeries(muniCompositionRowsByMuni.get(state.compositionScope) || [], dictionary)
-      : compositionSeries;
+      ? buildCompositionSeries(index.byMunicipio.get(state.compositionScope) || [], dictionary)
+      : series;
     renderStackedComposition(activeCompositionSeries, { svg: "composition-svg", guide: "comp-guide", legend: "composition-legend" });
+  }
+
+  function showCompositionLoading() {
+    const area = document.getElementById("composition-chart-area");
+    let loadingDiv = document.getElementById("composition-loading");
+    if (!loadingDiv) {
+      loadingDiv = document.createElement("div");
+      loadingDiv.id = "composition-loading";
+      loadingDiv.className = "map-loading";
+      area.appendChild(loadingDiv);
+    }
+    loadingDiv.textContent = I18N[state.lang].label_loading;
+  }
+
+  function hideCompositionLoading() {
+    const loadingDiv = document.getElementById("composition-loading");
+    if (loadingDiv) loadingDiv.remove();
   }
 
   function updateCompositionGuide() {
@@ -1707,8 +2067,12 @@
 
   const TREND_SPARK_W = 200, TREND_SPARK_H = 44, TREND_SPARK_PAD = 4;
 
-  function computeTrendMunicipalities(topN) {
-    const totals = Array.from(totalsByMunicipio.entries()).map(([municipio, years]) => {
+  // dataSource defaults to the always-available cross-product totals, so
+  // Explore's default selection and Composição's scope-select population
+  // (both call this with just topN) are unaffected by Tendências' own
+  // category filter — only renderTrends() itself passes a filtered source.
+  function computeTrendMunicipalities(topN, dataSource = totalsByMunicipio) {
+    const totals = Array.from(dataSource.entries()).map(([municipio, years]) => {
       let sum = 0;
       for (const v of years.values()) sum += v;
       return { municipio, total: sum };
@@ -1717,18 +2081,58 @@
     return totals.slice(0, topN).map((d) => d.municipio);
   }
 
+  // Returns a municipio -> Map(year -> valor) source matching Tendências'
+  // current filter: the always-loaded totalsByMunicipio for "Todos os
+  // produtos", or one SEC/SH2 category's values (inverted from
+  // compositionIndex*.byProduto — the same per-municipality composition
+  // data Composição and Ranking's category filter already use) otherwise.
+  // Returns null only when SH2 is selected but not loaded yet — the
+  // caller (renderTrends) is responsible for triggering the fetch.
+  // Assigns a default category itself (via populateTrendsCategorySelect)
+  // whenever state.trendsCategory is missing or invalid for this level —
+  // same self-healing rationale as renderRankingByCategory, needed for a
+  // cold URL deep link straight into "sec"/"sh2" with no category set.
+  function trendsDataSource() {
+    if (state.trendsAggLevel !== "sec" && state.trendsAggLevel !== "sh2") return totalsByMunicipio;
+    const index = state.trendsAggLevel === "sh2" ? compositionIndexSh2 : compositionIndexSec;
+    if (!index) return null;
+    if (!state.trendsCategory || !index.byProduto.has(state.trendsCategory)) {
+      populateTrendsCategorySelect();
+    }
+    if (!state.trendsCategory) return totalsByMunicipio; // no categories at all — shouldn't happen
+    const rows = index.byProduto.get(state.trendsCategory) || [];
+    const byMunicipio = new Map();
+    for (const r of rows) {
+      if (!byMunicipio.has(r.municipio)) byMunicipio.set(r.municipio, new Map());
+      byMunicipio.get(r.municipio).set(r.ano, r.valor);
+    }
+    return byMunicipio;
+  }
+
   function renderTrends() {
     const t = I18N[state.lang];
-    const munis = computeTrendMunicipalities(state.topN);
     const grid = document.getElementById("trends-grid");
+
+    const dataSource = trendsDataSource();
+    if (!dataSource) {
+      grid.innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+      const level = state.trendsAggLevel;
+      ensureSh2Loaded().then(() => {
+        populateTrendsCategorySelect();
+        if (state.view === "trends" && state.trendsAggLevel === level) render();
+      });
+      return;
+    }
+
+    const munis = computeTrendMunicipalities(state.topN, dataSource);
     grid.innerHTML = "";
     const frag = document.createDocumentFragment();
-    for (const municipio of munis) frag.appendChild(buildTrendCard(municipio, t));
+    for (const municipio of munis) frag.appendChild(buildTrendCard(municipio, t, dataSource));
     grid.appendChild(frag);
   }
 
-  function buildTrendCard(municipio, t) {
-    const years = totalsByMunicipio.get(municipio);
+  function buildTrendCard(municipio, t, dataSource) {
+    const years = dataSource.get(municipio);
     const series = [];
     for (let y = dictionary.year_inicio; y <= dictionary.year_final; y++) {
       series.push({ year: y, value: years.get(y) || 0 });
@@ -1820,10 +2224,12 @@
   // Repositions each card's selected-year marker without rebuilding the
   // grid — called on every autoplay tick, so it needs to be cheap.
   function updateTrendsMarkers() {
+    const dataSource = trendsDataSource();
+    if (!dataSource) return; // SH2 mid-load — renderTrends() owns showing the loading state
     const grid = document.getElementById("trends-grid");
     for (const card of grid.children) {
       const municipio = card.dataset.municipio;
-      const years = totalsByMunicipio.get(municipio);
+      const years = dataSource.get(municipio);
       if (!years) continue;
       const value = years.get(state.year);
       const marker = card.querySelector('[data-role="marker"]');

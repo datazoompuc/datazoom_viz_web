@@ -66,18 +66,54 @@
     </div>
 
     <div class="var_selec_group hidden" id="composition-scope-group">
+      <label id="label_composition_agg" for="composition-agg-select"></label>
+      <select id="composition-agg-select">
+        <option value="sec"></option>
+        <option value="sh2"></option>
+      </select>
+      <div class="spacer"></div>
       <label id="label_composition_scope" for="composition-scope-select"></label>
       <select id="composition-scope-select"></select>
     </div>
 
     <div class="var_selec_group hidden" id="ranking-product-group">
-      <label id="label_ranking_product_select" for="ranking-product-select"></label>
-      <select id="ranking-product-select"></select>
+      <label id="label_ranking_agg_level" for="ranking-agg-level-select"></label>
+      <select id="ranking-agg-level-select">
+        <option value="all"></option>
+        <option value="sec"></option>
+        <option value="sh2"></option>
+        <option value="sh4"></option>
+      </select>
       <div class="spacer"></div>
-      <label id="label_ranking_product_search" for="ranking-product-input" class="prodrank-search-label"></label>
-      <input type="text" id="ranking-product-input" list="ranking-product-datalist" autocomplete="off">
-      <datalist id="ranking-product-datalist"></datalist>
-      <p class="prodrank-full-label" id="ranking-product-full-label"></p>
+
+      <div id="ranking-category-group" class="hidden">
+        <label id="label_ranking_category" for="ranking-category-select"></label>
+        <select id="ranking-category-select"></select>
+      </div>
+
+      <div id="ranking-sh4-group" class="hidden">
+        <label id="label_ranking_product_select" for="ranking-product-select"></label>
+        <select id="ranking-product-select"></select>
+        <div class="spacer"></div>
+        <label id="label_ranking_product_search" for="ranking-product-input" class="prodrank-search-label"></label>
+        <input type="text" id="ranking-product-input" list="ranking-product-datalist" autocomplete="off">
+        <datalist id="ranking-product-datalist"></datalist>
+        <p class="prodrank-full-label" id="ranking-product-full-label"></p>
+      </div>
+    </div>
+
+    <div class="var_selec_group hidden" id="trends-agg-group">
+      <label id="label_trends_agg_level" for="trends-agg-level-select"></label>
+      <select id="trends-agg-level-select">
+        <option value="all"></option>
+        <option value="sec"></option>
+        <option value="sh2"></option>
+      </select>
+      <div class="spacer"></div>
+      <div id="trends-category-group" class="hidden">
+        <label id="label_trends_category" for="trends-category-select"></label>
+        <select id="trends-category-select"></select>
+      </div>
     </div>
 
     <div class="var_selec_group hidden" id="explore-group">

@@ -5,6 +5,14 @@
       "label": "Animais vivos e produtos do reino animal"
     },
     {
+      "var": "Armas e munições; suas partes e acessórios",
+      "label": "Armas e munições; suas partes e acessórios"
+    },
+    {
+      "var": "Calçado, chapéus e artefatos de uso semelhante, guarda-chuvas, guarda-sóis, bengalas, chicotes e suas partes; Penas preparadas e suas obras; Flores artificiais; Obras de cabelo",
+      "label": "Calçado, chapéus e artefatos de uso semelhante, guarda-chuvas, guarda-sóis, bengalas, chicotes e suas partes; Penas preparadas e suas obras; Flores artificiais; Obras de cabelo"
+    },
+    {
       "var": "Gorduras e óleos animais ou vegetais; Produtos da sua dossociação; Gorduras alimentares elaboradas; Ceras de origem animal ou vegetal",
       "label": "Gorduras e óleos animais ou vegetais; Produtos da sua dossociação; Gorduras alimentares elaboradas; Ceras de origem animal ou vegetal"
     },
@@ -19,6 +27,10 @@
     {
       "var": "Máquinas e aparelhos, material elétrico e suas partes; Aparelhos de gravação ou reprodução de som, aparelhos de gravação ou reprodução de imagens e de som em televisão, e suas partes e acessórios",
       "label": "Máquinas e aparelhos, material elétrico e suas partes; Aparelhos de gravação ou reprodução de som, aparelhos de gravação ou reprodução de imagens e de som em televisão, e suas partes e acessórios"
+    },
+    {
+      "var": "Material de transporte",
+      "label": "Material de transporte"
     },
     {
       "var": "Matérias têxteis e suas obras",
@@ -49,6 +61,10 @@
       "label": "Peles, couros, peles com pelo e obras destas matérias; Artigos de correeiro ou de seleiro; Artigos de viagem, bolsas e artefatos semelhantes; Obras de tripa"
     },
     {
+      "var": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas",
+      "label": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas"
+    },
+    {
       "var": "Plásticos e suas obras; Borracha e suas obras",
       "label": "Plásticos e suas obras; Borracha e suas obras"
     },
@@ -71,28 +87,20 @@
     {
       "var": "Transações especiais",
       "label": "Transações especiais"
-    },
-    {
-      "var": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas",
-      "label": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas"
-    },
-    {
-      "var": "Material de transporte",
-      "label": "Material de transporte"
-    },
-    {
-      "var": "Calçado, chapéus e artefatos de uso semelhante, guarda-chuvas, guarda-sóis, bengalas, chicotes e suas partes; Penas preparadas e suas obras; Flores artificiais; Obras de cabelo",
-      "label": "Calçado, chapéus e artefatos de uso semelhante, guarda-chuvas, guarda-sóis, bengalas, chicotes e suas partes; Penas preparadas e suas obras; Flores artificiais; Obras de cabelo"
-    },
-    {
-      "var": "Armas e munições; suas partes e acessórios",
-      "label": "Armas e munições; suas partes e acessórios"
     }
   ],
   "en": [
     {
       "var": "Animais vivos e produtos do reino animal",
       "label": "Lives animals; Animal products"
+    },
+    {
+      "var": "Armas e munições; suas partes e acessórios",
+      "label": "Arms and ammunition; parts and accessories thereof"
+    },
+    {
+      "var": "Calçado, chapéus e artefatos de uso semelhante, guarda-chuvas, guarda-sóis, bengalas, chicotes e suas partes; Penas preparadas e suas obras; Flores artificiais; Obras de cabelo",
+      "label": "Footwear, headgear, umbrellas, sun umbrellas, wlaking-sticks, seat-sticks, whips, riding-crops and parts thereof; Prepared feathers and articles made therewith; Artificial floweres; Articles of human hair"
     },
     {
       "var": "Gorduras e óleos animais ou vegetais; Produtos da sua dossociação; Gorduras alimentares elaboradas; Ceras de origem animal ou vegetal",
@@ -109,6 +117,10 @@
     {
       "var": "Máquinas e aparelhos, material elétrico e suas partes; Aparelhos de gravação ou reprodução de som, aparelhos de gravação ou reprodução de imagens e de som em televisão, e suas partes e acessórios",
       "label": "Machinery and mechanical appliances; Electrical equipment and parts thereof; Sound recorders and reproducers, sound recorders and producers of television image; Parts and accessoires of such articles"
+    },
+    {
+      "var": "Material de transporte",
+      "label": "Vehicles, aircraft, vessels and associated transport equipment"
     },
     {
       "var": "Matérias têxteis e suas obras",
@@ -139,6 +151,10 @@
       "label": "Raw hides and skins, leather, furskins and articles thereof; Saddlery and harness; Travel goods, handbags and similar containers; Articles of animal gut (other than silkworm gut)"
     },
     {
+      "var": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas",
+      "label": "Natural or cultured pearls, precious or semi-precious stones, precious metals, metals clad with precious metal, and articles thereof; Imitation jewellery; Coins"
+    },
+    {
       "var": "Plásticos e suas obras; Borracha e suas obras",
       "label": "Plastics and articles thereof; Rubber and articles thereof"
     },
@@ -161,22 +177,6 @@
     {
       "var": "Transações especiais",
       "label": "Special transactions"
-    },
-    {
-      "var": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas",
-      "label": "Natural or cultured pearls, precious or semi-precious stones, precious metals, metals clad with precious metal, and articles thereof; Imitation jewellery; Coins"
-    },
-    {
-      "var": "Material de transporte",
-      "label": "Vehicles, aircraft, vessels and associated transport equipment"
-    },
-    {
-      "var": "Calçado, chapéus e artefatos de uso semelhante, guarda-chuvas, guarda-sóis, bengalas, chicotes e suas partes; Penas preparadas e suas obras; Flores artificiais; Obras de cabelo",
-      "label": "Footwear, headgear, umbrellas, sun umbrellas, wlaking-sticks, seat-sticks, whips, riding-crops and parts thereof; Prepared feathers and articles made therewith; Artificial floweres; Articles of human hair"
-    },
-    {
-      "var": "Armas e munições; suas partes e acessórios",
-      "label": "Arms and ammunition; parts and accessories thereof"
     }
   ]
 }
