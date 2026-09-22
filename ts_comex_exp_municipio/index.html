@@ -117,6 +117,19 @@
     </div>
 
     <div class="var_selec_group hidden" id="explore-group">
+      <label id="label_explore_agg_level" for="explore-agg-level-select"></label>
+      <select id="explore-agg-level-select">
+        <option value="all"></option>
+        <option value="sec"></option>
+        <option value="sh2"></option>
+      </select>
+      <div class="spacer"></div>
+      <div id="explore-category-group" class="hidden">
+        <label id="label_explore_category" for="explore-category-select"></label>
+        <select id="explore-category-select"></select>
+        <div class="spacer"></div>
+      </div>
+
       <label id="label_explore_munis" for="explore-munis-select"></label>
       <select id="explore-munis-select" multiple size="10"></select>
       <p class="explore-hint" id="explore-hint"></p>

@@ -47,7 +47,9 @@
       label_since_prefix: "Desde ",
       view_explore: "Explorar",
       title_explore: "Comparar municípios",
+      title_explore_category: "Comparar municípios — {categoria}",
       subtitle_explore: "Valor exportado (US$) ao longo do tempo, municípios selecionados",
+      subtitle_explore_category: "Valor exportado (US$) na categoria, ao longo do tempo, municípios selecionados",
       label_explore_munis: "Municípios (Ctrl/Cmd+clique para vários)",
       explore_hint: "Ordenado por valor total exportado",
       label_log_scale: "Escala logarítmica",
@@ -135,7 +137,9 @@
       label_since_prefix: "Since ",
       view_explore: "Explore",
       title_explore: "Compare municipalities",
+      title_explore_category: "Compare municipalities — {categoria}",
       subtitle_explore: "Export value (US$) over time, selected municipalities",
+      subtitle_explore_category: "Export value (US$) in the category, over time, selected municipalities",
       label_explore_munis: "Municipalities (Ctrl/Cmd+click for multiple)",
       explore_hint: "Sorted by total export value",
       label_log_scale: "Log scale",
@@ -222,6 +226,8 @@
     exploreMunis: [], // hand-picked municipalities for the explore view
     exploreLog: false,
     exploreIndex: false,
+    exploreAggLevel: "all", // "all" | "sec" | "sh2" — what Explorar's lines are filtered by
+    exploreCategory: null, // selected SEC or SH2 category name, used when exploreAggLevel is "sec"/"sh2"
     compositionScope: null, // null = whole-region composition; a municipio name = that place's own composition
     compositionAgg: "sec", // "sec" | "sh2" — which product-category taxonomy the Composição chart uses
     rankingAggLevel: "all", // "all" | "sec" | "sh2" | "sh4" — what Ranking is filtered by
@@ -533,6 +539,14 @@
     return null;
   }
 
+  // Same idea for Explorar's category filter.
+  function currentExploreFilterLabel() {
+    if ((state.exploreAggLevel === "sec" || state.exploreAggLevel === "sh2") && state.exploreCategory) {
+      return categoryShortLabelFor(state.exploreAggLevel, state.exploreCategory);
+    }
+    return null;
+  }
+
   // Curated dropdown works before the 1MB dataset loads (labels come from
   // PRODRANK_CURATED_LABELS) — safe to call at init and again after load
   // (rankingProductShortLabel switches to the live official data once
@@ -684,6 +698,31 @@
   function syncTrendsAggControls() {
     document.getElementById("trends-agg-level-select").value = state.trendsAggLevel;
     document.getElementById("trends-category-group").classList.toggle("hidden", state.trendsAggLevel !== "sec" && state.trendsAggLevel !== "sh2");
+  }
+
+  function populateExploreCategorySelect() {
+    const level = state.exploreAggLevel;
+    const select = document.getElementById("explore-category-select");
+    select.innerHTML = "";
+    if (level !== "sec" && level !== "sh2") return;
+    const items = categoryOptionsFor(level);
+    if (!items) return;
+    for (const { value, label } of items) {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = label;
+      select.appendChild(opt);
+    }
+    if (!state.exploreCategory || !items.some((i) => i.value === state.exploreCategory)) {
+      state.exploreCategory = items.length ? items[0].value : null;
+    }
+    select.value = state.exploreCategory || "";
+  }
+
+  // Same idea as syncTrendsAggControls, for Explorar's own tier.
+  function syncExploreAggControls() {
+    document.getElementById("explore-agg-level-select").value = state.exploreAggLevel;
+    document.getElementById("explore-category-group").classList.toggle("hidden", state.exploreAggLevel !== "sec" && state.exploreAggLevel !== "sh2");
   }
 
   // ---- Map (Leaflet, lazy-loaded): a serverless rebuild of the separate
@@ -975,6 +1014,8 @@
     const qRankProduct = params.get("rankproduct");
     const qTrendsAggLevel = params.get("trendsagglevel");
     const qTrendsCategory = params.get("trendscategory");
+    const qExploreAggLevel = params.get("exploreagglevel");
+    const qExploreCategory = params.get("explorecategory");
     const qMapMode = params.get("mapmode");
 
     state.lang = qLang === "en" ? "en" : "pt";
@@ -1004,6 +1045,8 @@
     state.rankingProduct = qRankProduct || null;
     state.trendsAggLevel = ["all", "sec", "sh2"].includes(qTrendsAggLevel) ? qTrendsAggLevel : "all";
     state.trendsCategory = qTrendsCategory || null;
+    state.exploreAggLevel = ["all", "sec", "sh2"].includes(qExploreAggLevel) ? qExploreAggLevel : "all";
+    state.exploreCategory = qExploreCategory || null;
     state.mapMode = ["forest", "all", "ratio"].includes(qMapMode) ? qMapMode : "forest";
   }
 
@@ -1026,6 +1069,8 @@
     params.set("rankproduct", state.rankingProduct || "");
     params.set("trendsagglevel", state.trendsAggLevel);
     params.set("trendscategory", state.trendsCategory || "");
+    params.set("exploreagglevel", state.exploreAggLevel);
+    params.set("explorecategory", state.exploreCategory || "");
     params.set("mapmode", state.mapMode);
     history.replaceState(null, "", `?${params.toString()}`);
   }
@@ -1153,6 +1198,29 @@
 
     syncTrendsAggControls();
     populateTrendsCategorySelect();
+
+    // ---- Explorar's aggregation-level tier: same idea as Tendências',
+    // filtering the overlaid-line comparison to one SEC/SH2 category
+    // instead of only total export value. ----
+
+    const exploreAggLevelSelect = document.getElementById("explore-agg-level-select");
+    exploreAggLevelSelect.addEventListener("change", (e) => {
+      state.exploreAggLevel = e.target.value;
+      updateUrl();
+      syncExploreAggControls();
+      populateExploreCategorySelect(); // no-ops if SH2 isn't loaded yet — exploreDataSource()/renderExplore() own that fetch + the loading state
+      render();
+    });
+
+    const exploreCategorySelect = document.getElementById("explore-category-select");
+    exploreCategorySelect.addEventListener("change", (e) => {
+      state.exploreCategory = e.target.value || null;
+      updateUrl();
+      render();
+    });
+
+    syncExploreAggControls();
+    populateExploreCategorySelect();
 
     const compositionScopeSelect = document.getElementById("composition-scope-select");
     const regionOpt = document.createElement("option");
@@ -1429,6 +1497,8 @@
     document.getElementById("label_ranking_product_search").textContent = t.label_ranking_product_search;
     document.getElementById("label_trends_agg_level").textContent = t.label_agg_level;
     document.getElementById("label_trends_category").textContent = t.label_category;
+    document.getElementById("label_explore_agg_level").textContent = t.label_agg_level;
+    document.getElementById("label_explore_category").textContent = t.label_category;
     document.getElementById("label_map_mode").textContent = t.label_map_mode;
     document.getElementById("map-mode-forest").textContent = t.map_mode_forest;
     document.getElementById("map-mode-all").textContent = t.map_mode_all;
@@ -1451,20 +1521,23 @@
     setAggOptionLabels("composition-agg-select");
     setAggOptionLabels("ranking-agg-level-select");
     setAggOptionLabels("trends-agg-level-select");
+    setAggOptionLabels("explore-agg-level-select");
 
     // Repopulate the picker(s) too — option labels are language-specific.
     if (productRanking) populateRankingProductPicker(); else populateCuratedSelect();
     populateRankingCategorySelect();
     populateTrendsCategorySelect();
+    populateExploreCategorySelect();
 
     const rankingFilterLabel = currentRankingFilterLabel();
     const trendsFilterLabel = currentTrendsFilterLabel();
+    const exploreFilterLabel = currentExploreFilterLabel();
     const titles = {
       ranking: rankingFilterLabel ? t.title_ranking_product.replace("{produto}", rankingFilterLabel) : t.title_ranking,
       composition: state.compositionScope ? t.title_composition_muni.replace("{municipio}", state.compositionScope) : t.title_composition,
       change: t.title_change,
       trends: trendsFilterLabel ? t.title_trends_category.replace("{categoria}", trendsFilterLabel) : t.title_trends,
-      explore: t.title_explore,
+      explore: exploreFilterLabel ? t.title_explore_category.replace("{categoria}", exploreFilterLabel) : t.title_explore,
       map: t[`title_map_${state.mapMode}`]
     };
     const subtitles = {
@@ -1472,7 +1545,7 @@
       composition: state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition,
       change: t.subtitle_change,
       trends: trendsFilterLabel ? t.subtitle_trends_category : t.subtitle_trends,
-      explore: t.subtitle_explore,
+      explore: exploreFilterLabel ? t.subtitle_explore_category : t.subtitle_explore,
       map: t[`subtitle_map_${state.mapMode}`]
     };
     document.getElementById("plot-title").textContent = titles[state.view];
@@ -2081,6 +2154,19 @@
     return totals.slice(0, topN).map((d) => d.municipio);
   }
 
+  // Inverts a byProduto row list (already the other-direction read of the
+  // same compositionIndex* data) into the municipio -> Map(year -> valor)
+  // shape totalsByMunicipio itself uses — shared by Tendências' and
+  // Explorar's category filters below.
+  function categoryRowsToMunicipioMap(rows) {
+    const byMunicipio = new Map();
+    for (const r of rows) {
+      if (!byMunicipio.has(r.municipio)) byMunicipio.set(r.municipio, new Map());
+      byMunicipio.get(r.municipio).set(r.ano, r.valor);
+    }
+    return byMunicipio;
+  }
+
   // Returns a municipio -> Map(year -> valor) source matching Tendências'
   // current filter: the always-loaded totalsByMunicipio for "Todos os
   // produtos", or one SEC/SH2 category's values (inverted from
@@ -2100,13 +2186,19 @@
       populateTrendsCategorySelect();
     }
     if (!state.trendsCategory) return totalsByMunicipio; // no categories at all — shouldn't happen
-    const rows = index.byProduto.get(state.trendsCategory) || [];
-    const byMunicipio = new Map();
-    for (const r of rows) {
-      if (!byMunicipio.has(r.municipio)) byMunicipio.set(r.municipio, new Map());
-      byMunicipio.get(r.municipio).set(r.ano, r.valor);
+    return categoryRowsToMunicipioMap(index.byProduto.get(state.trendsCategory) || []);
+  }
+
+  // Same idea, for Explorar's own independent category filter.
+  function exploreDataSource() {
+    if (state.exploreAggLevel !== "sec" && state.exploreAggLevel !== "sh2") return totalsByMunicipio;
+    const index = state.exploreAggLevel === "sh2" ? compositionIndexSh2 : compositionIndexSec;
+    if (!index) return null;
+    if (!state.exploreCategory || !index.byProduto.has(state.exploreCategory)) {
+      populateExploreCategorySelect();
     }
-    return byMunicipio;
+    if (!state.exploreCategory) return totalsByMunicipio;
+    return categoryRowsToMunicipioMap(index.byProduto.get(state.exploreCategory) || []);
   }
 
   function renderTrends() {
@@ -2260,12 +2352,19 @@
   const EXPLORE_PAD_L = 60, EXPLORE_PAD_R = 16, EXPLORE_PAD_T = 12, EXPLORE_PAD_B = 28;
   const EXPLORE_VB_W = 1000, EXPLORE_VB_H = 520;
 
+  // Returns null when the data source isn't ready (SH2 selected but not
+  // loaded yet) — renderExplore() shows a loading state and re-invokes in
+  // that case, rather than this function silently building an empty/wrong
+  // series against undefined data.
   function buildExploreSeries() {
+    const dataSource = exploreDataSource();
+    if (!dataSource) return null;
+
     const years = [];
     for (let y = dictionary.year_inicio; y <= dictionary.year_final; y++) years.push(y);
 
     return state.exploreMunis.map((municipio, i) => {
-      const yearMap = totalsByMunicipio.get(municipio);
+      const yearMap = dataSource.get(municipio);
       const raw = years.map((y) => (yearMap ? yearMap.get(y) || 0 : 0));
       const first = raw[0];
       // Indexing to a zero base is undefined (not "no growth" — the flat
@@ -2282,8 +2381,30 @@
 
   function renderExplore() {
     const svg = document.getElementById("explore-svg");
-    svg.innerHTML = "";
+    const t = I18N[state.lang];
     const series = buildExploreSeries();
+
+    if (series === null) {
+      svg.innerHTML = "";
+      let loadingDiv = document.getElementById("explore-loading");
+      if (!loadingDiv) {
+        loadingDiv = document.createElement("div");
+        loadingDiv.id = "explore-loading";
+        loadingDiv.className = "map-loading";
+        document.getElementById("explore-chart-area").appendChild(loadingDiv);
+      }
+      loadingDiv.textContent = t.label_loading;
+      const level = state.exploreAggLevel;
+      ensureSh2Loaded().then(() => {
+        populateExploreCategorySelect();
+        if (state.view === "explore" && state.exploreAggLevel === level) render();
+      });
+      return;
+    }
+    const existingLoading = document.getElementById("explore-loading");
+    if (existingLoading) existingLoading.remove();
+
+    svg.innerHTML = "";
 
     if (!series.length) {
       renderExploreLegend(series);
