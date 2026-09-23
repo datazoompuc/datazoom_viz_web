@@ -67,6 +67,13 @@
       agg_level_sh4: "Produto específico (SH4)",
       label_category: "Categoria",
       title_ranking_product: "Ranking de municípios exportadores — {produto}",
+      label_ranking_orientation: "Ranking de",
+      ranking_orientation_municipio: "Municípios",
+      ranking_orientation_produto: "Produtos",
+      label_ranking_scope: "Escopo",
+      title_ranking_produtos: "Ranking de produtos exportados",
+      title_ranking_produtos_scope: "Ranking de produtos exportados — {scope}",
+      subtitle_ranking_produtos: "Valor exportado (US$), por produto/categoria",
       label_ranking_product_select: "Produto",
       label_ranking_product_search: "Ou busque outro produto (todos os SH4)",
       ranking_product_all: "Todos os produtos",
@@ -159,6 +166,13 @@
       agg_level_sh4: "Specific product (SH4)",
       label_category: "Category",
       title_ranking_product: "Ranking of exporting municipalities — {produto}",
+      label_ranking_orientation: "Rank",
+      ranking_orientation_municipio: "Municipalities",
+      ranking_orientation_produto: "Products",
+      label_ranking_scope: "Scope",
+      title_ranking_produtos: "Ranking of exported products",
+      title_ranking_produtos_scope: "Ranking of exported products — {scope}",
+      subtitle_ranking_produtos: "Export value (US$), by product/category",
       label_ranking_product_select: "Product",
       label_ranking_product_search: "Or search another product (all SH4)",
       ranking_product_all: "All products",
@@ -245,6 +259,14 @@
     rankingAggLevel: "all", // "all" | "sec" | "sh2" | "sh4" — what Ranking is filtered by
     rankingCategory: null, // selected SEC or SH2 category name, used when rankingAggLevel is "sec"/"sh2"
     rankingProduct: null, // selected SH4 code, used when rankingAggLevel is "sh4"
+    // Ranking's own axis swap: "municipio" (default, above) ranks
+    // municípios for one product/category; "produto" ranks products/
+    // categories instead, for one município — or the state/region, same
+    // 3-way scope Composição's own compositionScope + the global state.uf
+    // filter already provide.
+    rankingOrientation: "municipio", // "municipio" | "produto"
+    rankingProdutoLevel: "sec", // "sec" | "sh2" | "sh4" — taxonomy ranked when rankingOrientation is "produto" ("all" has no meaning here — there's nothing to rank within a single undifferentiated bucket)
+    rankingScope: null, // municipio name, or null = whole state/region (mirrors compositionScope)
     trendsAggLevel: "all", // "all" | "sec" | "sh2" — what Tendências is filtered by
     trendsCategory: null, // selected SEC or SH2 category name, used when trendsAggLevel is "sec"/"sh2"
     mapMode: "forest" // "forest" | "all" | "ratio" — shares state.year with the rest of the app
@@ -1069,6 +1091,9 @@
     const qRankAggLevel = params.get("rankagglevel");
     const qRankCategory = params.get("rankcategory");
     const qRankProduct = params.get("rankproduct");
+    const qRankOrientation = params.get("rankorientation");
+    const qRankProdutoLevel = params.get("rankprodutolevel");
+    const qRankScope = params.get("rankscope");
     const qTrendsAggLevel = params.get("trendsagglevel");
     const qTrendsCategory = params.get("trendscategory");
     const qExploreAggLevel = params.get("exploreagglevel");
@@ -1103,6 +1128,9 @@
     // — the raw query value is kept provisionally so a shared URL still resolves.
     state.rankingCategory = qRankCategory || null;
     state.rankingProduct = qRankProduct || null;
+    state.rankingOrientation = qRankOrientation === "produto" ? "produto" : "municipio";
+    state.rankingProdutoLevel = ["sec", "sh2", "sh4"].includes(qRankProdutoLevel) ? qRankProdutoLevel : "sec";
+    state.rankingScope = qRankScope && totalsByMunicipio.has(qRankScope) ? qRankScope : null;
     state.trendsAggLevel = ["all", "sec", "sh2"].includes(qTrendsAggLevel) ? qTrendsAggLevel : "all";
     state.trendsCategory = qTrendsCategory || null;
     state.exploreAggLevel = ["all", "sec", "sh2"].includes(qExploreAggLevel) ? qExploreAggLevel : "all";
@@ -1127,6 +1155,9 @@
     params.set("rankagglevel", state.rankingAggLevel);
     params.set("rankcategory", state.rankingCategory || "");
     params.set("rankproduct", state.rankingProduct || "");
+    params.set("rankorientation", state.rankingOrientation);
+    params.set("rankprodutolevel", state.rankingProdutoLevel);
+    params.set("rankscope", state.rankingScope || "");
     params.set("trendsagglevel", state.trendsAggLevel);
     params.set("trendscategory", state.trendsCategory || "");
     params.set("exploreagglevel", state.exploreAggLevel);
@@ -1236,6 +1267,31 @@
     syncRankingAggControls();
     populateRankingCategorySelect();
 
+    // ---- Ranking's axis swap: rank products/categories for one
+    // município/estado/região instead of municípios for one product. ----
+
+    document.getElementById("ranking-orientation-municipio").addEventListener("click", () => setRankingOrientation("municipio"));
+    document.getElementById("ranking-orientation-produto").addEventListener("click", () => setRankingOrientation("produto"));
+    document.getElementById("ranking-orientation-municipio").classList.toggle("active", state.rankingOrientation === "municipio");
+    document.getElementById("ranking-orientation-produto").classList.toggle("active", state.rankingOrientation === "produto");
+    document.getElementById("ranking-by-municipio-group").classList.toggle("hidden", state.rankingOrientation !== "municipio");
+    document.getElementById("ranking-by-produto-group").classList.toggle("hidden", state.rankingOrientation !== "produto");
+
+    const rankingProdutoLevelSelect = document.getElementById("ranking-produto-level-select");
+    rankingProdutoLevelSelect.value = state.rankingProdutoLevel;
+    rankingProdutoLevelSelect.addEventListener("change", (e) => {
+      state.rankingProdutoLevel = e.target.value;
+      updateUrl();
+      render();
+    });
+
+    populateRankingScopeSelect();
+    document.getElementById("ranking-scope-select").addEventListener("change", (e) => {
+      state.rankingScope = e.target.value || null;
+      updateUrl();
+      render();
+    });
+
     // ---- Tendências' aggregation-level tier: same idea as Ranking's,
     // minus the SH4 tier (trending one specific product's top exporters
     // is a bigger, more novel feature than what was asked for here). ----
@@ -1341,6 +1397,10 @@
       if (state.compositionScope && (!municipioMeta.get(state.compositionScope) || municipioMeta.get(state.compositionScope).uf !== state.uf)) {
         state.compositionScope = null;
       }
+      // Same for Ranking's own produto-orientation scope.
+      if (state.rankingScope && (!municipioMeta.get(state.rankingScope) || municipioMeta.get(state.rankingScope).uf !== state.uf)) {
+        state.rankingScope = null;
+      }
       updateUrl();
       render();
     });
@@ -1413,6 +1473,20 @@
     document.getElementById("map-mode-forest").classList.toggle("active", mode === "forest");
     document.getElementById("map-mode-all").classList.toggle("active", mode === "all");
     document.getElementById("map-mode-ratio").classList.toggle("active", mode === "ratio");
+    updateUrl();
+    render();
+  }
+
+  // Ranking's axis-swap toggle — see renderRankingProdutos for the actual
+  // rendering. Just flips which of the two control subgroups is visible;
+  // state.rankingProdutoLevel/rankingScope keep their own values across the
+  // switch (no reset), so toggling back and forth doesn't lose a choice.
+  function setRankingOrientation(orientation) {
+    state.rankingOrientation = orientation;
+    document.getElementById("ranking-orientation-municipio").classList.toggle("active", orientation === "municipio");
+    document.getElementById("ranking-orientation-produto").classList.toggle("active", orientation === "produto");
+    document.getElementById("ranking-by-municipio-group").classList.toggle("hidden", orientation !== "municipio");
+    document.getElementById("ranking-by-produto-group").classList.toggle("hidden", orientation !== "produto");
     updateUrl();
     render();
   }
@@ -1580,8 +1654,15 @@
     };
     setAggOptionLabels("composition-agg-select");
     setAggOptionLabels("ranking-agg-level-select");
+    setAggOptionLabels("ranking-produto-level-select");
     setAggOptionLabels("trends-agg-level-select");
     setAggOptionLabels("explore-agg-level-select");
+
+    document.getElementById("label_ranking_orientation").textContent = t.label_ranking_orientation;
+    document.getElementById("ranking-orientation-municipio").textContent = t.ranking_orientation_municipio;
+    document.getElementById("ranking-orientation-produto").textContent = t.ranking_orientation_produto;
+    document.getElementById("label_ranking_produto_level").textContent = t.label_agg_level;
+    document.getElementById("label_ranking_scope").textContent = t.label_ranking_scope;
 
     // Repopulate the picker(s) too — option labels are language-specific.
     if (productRanking) populateRankingProductPicker(); else populateCuratedSelect();
@@ -1589,13 +1670,20 @@
     populateTrendsCategorySelect();
     populateExploreCategorySelect();
     populateCompositionScopeSelect();
+    populateRankingScopeSelect();
     populateExploreMunisSelect();
 
     const rankingFilterLabel = currentRankingFilterLabel();
     const trendsFilterLabel = currentTrendsFilterLabel();
     const exploreFilterLabel = currentExploreFilterLabel();
+    // Ranking's own scope label for the produto-orientation title: a
+    // specific município, else the selected state, else null (whole
+    // region) — same precedence Composição's title already uses.
+    const rankingScopeLabel = state.rankingScope || state.uf || null;
     const titles = {
-      ranking: rankingFilterLabel ? t.title_ranking_product.replace("{produto}", rankingFilterLabel) : t.title_ranking,
+      ranking: state.rankingOrientation === "produto"
+        ? (rankingScopeLabel ? t.title_ranking_produtos_scope.replace("{scope}", rankingScopeLabel) : t.title_ranking_produtos)
+        : (rankingFilterLabel ? t.title_ranking_product.replace("{produto}", rankingFilterLabel) : t.title_ranking),
       composition: state.compositionScope
         ? t.title_composition_muni.replace("{municipio}", state.compositionScope)
         : (state.uf ? t.title_composition_uf.replace("{uf}", state.uf) : t.title_composition),
@@ -1605,7 +1693,7 @@
       map: t[`title_map_${state.mapMode}`]
     };
     const subtitles = {
-      ranking: t.subtitle_ranking,
+      ranking: state.rankingOrientation === "produto" ? t.subtitle_ranking_produtos : t.subtitle_ranking,
       composition: state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition,
       change: t.subtitle_change,
       trends: trendsFilterLabel ? t.subtitle_trends_category : t.subtitle_trends,
@@ -1646,6 +1734,14 @@
   // own lazy fetch since it's a much larger, separate dataset.
   function renderRanking() {
     const t = I18N[state.lang];
+
+    // Axis swap: rank products/categories for one município/estado/região
+    // instead of ranking municípios for one product/category — see
+    // renderRankingProdutos.
+    if (state.rankingOrientation === "produto") {
+      renderRankingProdutos(t);
+      return;
+    }
 
     if (state.rankingAggLevel === "sh4" && state.rankingProduct) {
       renderRankingByProduct(t);
@@ -1752,7 +1848,127 @@
     renderRankingFromRows(t, (state.rankingCategory && index.byProduto.get(state.rankingCategory)) || []);
   }
 
-  function buildRankRow(row, index, maxVal, ids) {
+  // Ranking's axis swap: rank products/categories for one município, or the
+  // selected state/whole region (state.rankingScope + the global state.uf
+  // filter, same 3-way precedence Composição's own scope already uses —
+  // see buildStateCompositionRows), instead of ranking municípios for one
+  // product/category. SEC/SH2 reuse the exact same compositionIndex*/
+  // compositionSec/Sh2 data Composição and the municipio-orientation
+  // category filter already load; SH4 has its own path below since no
+  // region-wide or per-state SH4 total is shipped (only per-municipio
+  // rows), so it's summed client-side instead (see sh4ScopeRows).
+  function renderRankingProdutos(t) {
+    if (state.rankingProdutoLevel === "sh4") {
+      renderRankingProdutosSh4(t);
+      return;
+    }
+    renderRankingProdutosCategoria(t, state.rankingProdutoLevel);
+  }
+
+  function renderRankingProdutosCategoria(t, level) {
+    const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
+    if (level === "sh2" && !index) {
+      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+      document.getElementById("region-total-label").textContent = "";
+      ensureSh2Loaded().then(() => {
+        if (state.view === "ranking" && state.rankingOrientation === "produto" && state.rankingProdutoLevel === "sh2") render();
+      });
+      return;
+    }
+
+    let scopeRows;
+    if (state.rankingScope) {
+      scopeRows = index.byMunicipio.get(state.rankingScope) || [];
+    } else if (state.uf) {
+      scopeRows = buildStateCompositionRows(index, state.uf);
+    } else {
+      scopeRows = level === "sh2" ? compositionSh2 : compositionSec;
+    }
+
+    const rows = scopeRows.filter((r) => r.ano === state.year).sort((a, b) => b.valor - a.valor);
+    renderRankingProdutoRows(t, rows, (r) => categoryShortLabelFor(level, r.produto), (r) => categoryLabelFor(level, r.produto));
+  }
+
+  function renderRankingProdutosSh4(t) {
+    if (!productRanking) {
+      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+      document.getElementById("region-total-label").textContent = "";
+      ensureProductRankingLoaded().then(() => {
+        if (state.view === "ranking" && state.rankingOrientation === "produto" && state.rankingProdutoLevel === "sh4") render();
+      });
+      return;
+    }
+    const rows = sh4ScopeRows(state.uf, state.rankingScope)
+      .filter((r) => r.ano === state.year)
+      .sort((a, b) => b.valor - a.valor);
+    renderRankingProdutoRows(t, rows, (r) => rankingProductShortLabel(r.code), (r) => rankingProductLabel(r.code));
+  }
+
+  // No region-wide or per-state SH4 total is shipped (product_ranking.json
+  // only carries per-municipio rows — see
+  // data-raw/export_ts_comex_exp_municipio_produtos_web.R), so "whole
+  // region" or "whole state" scope is summed client-side from the raw
+  // cells instead, mirroring buildStateCompositionRows' same summing
+  // approach for SEC/SH2. A specific município still goes through this
+  // same pass (each of its own code+ano pairs is already unique, so
+  // summing is a no-op there) rather than a separate branch.
+  function sh4ScopeRows(uf, municipio) {
+    const sums = new Map(); // "code|ano" -> valor
+    for (const [produtoIdx, municipioIdx, ano, valor] of productRanking.cells) {
+      const m = productRanking.municipios[municipioIdx];
+      if (municipio) {
+        if (m !== municipio) continue;
+      } else if (uf) {
+        const meta = municipioMeta.get(m);
+        if (!meta || meta.uf !== uf) continue;
+      }
+      const code = productRanking.produtos[produtoIdx].code;
+      const key = code + "|" + ano;
+      sums.set(key, (sums.get(key) || 0) + valor);
+    }
+    const result = [];
+    for (const [key, valor] of sums) {
+      const sep = key.lastIndexOf("|");
+      result.push({ code: key.slice(0, sep), ano: parseInt(key.slice(sep + 1), 10), valor });
+    }
+    return result;
+  }
+
+  // Shared tail for both produto-orientation branches above: rows are
+  // already filtered to the current year and sorted — slice top-N, show
+  // the scope's own total (region-wide precomputed total when nothing
+  // narrows the scope, otherwise the filtered rows' own sum — same
+  // convention the municipio-orientation branches already use for a
+  // uf-filtered ranking), and render.
+  function renderRankingProdutoRows(t, rows, shortLabelFor, fullLabelFor) {
+    const top = rows.slice(0, state.topN);
+    const maxVal = top.length ? top[0].valor : 1;
+
+    if (!state.rankingScope && !state.uf) {
+      const regionTotal = regionTotalByYear.get(state.year);
+      document.getElementById("region-total-label").innerHTML =
+        regionTotal != null ? t.region_total_prefix + "<b>" + fmtAbbrev(regionTotal) + "</b>" : "";
+    } else {
+      const scopeTotal = rows.reduce((sum, r) => sum + r.valor, 0);
+      document.getElementById("region-total-label").innerHTML =
+        rows.length ? t.ranking_product_total_prefix + "<b>" + fmtAbbrev(scopeTotal) + "</b>" : "";
+    }
+
+    const container = document.getElementById(RANKING_IDS.rows);
+    container.innerHTML = "";
+    const frag = document.createDocumentFragment();
+    top.forEach((row, i) => frag.appendChild(buildRankRow(row, i, maxVal, RANKING_IDS, shortLabelFor, fullLabelFor)));
+    container.appendChild(frag);
+  }
+
+  // labelFor/fullLabelFor default to the municipio-orientation shape
+  // ({municipio, valor}, where the short and full label are the same
+  // string) — Ranking's produto-orientation (renderRankingProdutoRows)
+  // passes its own pair instead, since a SEC/SH2/SH4 name needs a short
+  // clause-truncated form in the row itself (long names would otherwise
+  // dominate the fixed-width label column) and the full official name in
+  // the hover tooltip/native title.
+  function buildRankRow(row, index, maxVal, ids, labelFor = (r) => r.municipio, fullLabelFor = labelFor) {
     const el = document.createElement("div");
     el.className = "rank-row";
 
@@ -1763,8 +1979,8 @@
 
     const label = document.createElement("div");
     label.className = "rank-label";
-    label.textContent = row.municipio;
-    label.title = row.municipio;
+    label.textContent = labelFor(row);
+    label.title = fullLabelFor(row);
     el.appendChild(label);
 
     const track = document.createElement("div");
@@ -1780,17 +1996,17 @@
     value.textContent = fmtAbbrev(row.valor);
     el.appendChild(value);
 
-    el.addEventListener("pointerenter", (e) => showRankTooltip(e, row, index, ids));
+    el.addEventListener("pointerenter", (e) => showRankTooltip(e, row, index, ids, fullLabelFor));
     el.addEventListener("pointermove", (e) => moveRankTooltip(e, ids));
     el.addEventListener("pointerleave", () => hideRankTooltip(ids));
 
     return el;
   }
 
-  function showRankTooltip(e, row, index, ids) {
+  function showRankTooltip(e, row, index, ids, fullLabelFor = (r) => r.municipio) {
     const tooltip = document.getElementById(ids.tooltip);
     tooltip.innerHTML =
-      "<strong>" + row.municipio + "</strong><br>" +
+      "<strong>" + fullLabelFor(row) + "</strong><br>" +
       "#" + (index + 1) + " · US$ " + fmtNumber(row.valor);
     tooltip.style.opacity = "1";
     moveRankTooltip(e, ids);
@@ -2288,6 +2504,26 @@
       select.appendChild(opt);
     }
     select.value = state.compositionScope && munis.includes(state.compositionScope) ? state.compositionScope : "";
+  }
+
+  // Same idiom, for Ranking's own produto-orientation scope picker (see
+  // renderRankingProdutos) — município, or "Todos os municípios" for the
+  // uf-filtered whole state/region, mirroring compositionScope exactly.
+  function populateRankingScopeSelect() {
+    const select = document.getElementById("ranking-scope-select");
+    select.innerHTML = "";
+    const regionOpt = document.createElement("option");
+    regionOpt.value = "";
+    regionOpt.textContent = I18N[state.lang].composition_scope_region;
+    select.appendChild(regionOpt);
+    const munis = computeTrendMunicipalities(municipioMeta.size).filter((m) => compositionIndexSec.byMunicipio.has(m));
+    for (const municipio of munis) {
+      const opt = document.createElement("option");
+      opt.value = municipio;
+      opt.textContent = municipio;
+      select.appendChild(opt);
+    }
+    select.value = state.rankingScope && munis.includes(state.rankingScope) ? state.rankingScope : "";
   }
 
   // Same idiom, for Explorar's municipality multi-select — uf-filtered via

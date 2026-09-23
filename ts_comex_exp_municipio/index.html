@@ -83,28 +83,49 @@
     </div>
 
     <div class="var_selec_group hidden" id="ranking-product-group">
-      <label id="label_ranking_agg_level" for="ranking-agg-level-select"></label>
-      <select id="ranking-agg-level-select" class="sidebar-field">
-        <option value="all"></option>
-        <option value="sec"></option>
-        <option value="sh2"></option>
-        <option value="sh4"></option>
-      </select>
+      <p class="vars" id="label_ranking_orientation"></p>
+      <div class="view-toggle" id="ranking-orientation-toggle">
+        <button class="view-btn active" id="ranking-orientation-municipio" data-orientation="municipio"></button>
+        <button class="view-btn" id="ranking-orientation-produto" data-orientation="produto"></button>
+      </div>
       <div class="spacer"></div>
 
-      <div id="ranking-category-group" class="hidden">
-        <label id="label_ranking_category" for="ranking-category-select"></label>
-        <select id="ranking-category-select" class="sidebar-field"></select>
+      <div id="ranking-by-municipio-group">
+        <label id="label_ranking_agg_level" for="ranking-agg-level-select"></label>
+        <select id="ranking-agg-level-select" class="sidebar-field">
+          <option value="all"></option>
+          <option value="sec"></option>
+          <option value="sh2"></option>
+          <option value="sh4"></option>
+        </select>
+        <div class="spacer"></div>
+
+        <div id="ranking-category-group" class="hidden">
+          <label id="label_ranking_category" for="ranking-category-select"></label>
+          <select id="ranking-category-select" class="sidebar-field"></select>
+        </div>
+
+        <div id="ranking-sh4-group" class="hidden">
+          <label id="label_ranking_product_select" for="ranking-product-select"></label>
+          <select id="ranking-product-select" class="sidebar-field"></select>
+          <div class="spacer"></div>
+          <label id="label_ranking_product_search" for="ranking-product-input" class="prodrank-search-label"></label>
+          <input type="text" id="ranking-product-input" class="sidebar-field" list="ranking-product-datalist" autocomplete="off">
+          <datalist id="ranking-product-datalist"></datalist>
+          <p class="prodrank-full-label" id="ranking-product-full-label"></p>
+        </div>
       </div>
 
-      <div id="ranking-sh4-group" class="hidden">
-        <label id="label_ranking_product_select" for="ranking-product-select"></label>
-        <select id="ranking-product-select" class="sidebar-field"></select>
+      <div id="ranking-by-produto-group" class="hidden">
+        <label id="label_ranking_produto_level" for="ranking-produto-level-select"></label>
+        <select id="ranking-produto-level-select" class="sidebar-field">
+          <option value="sec"></option>
+          <option value="sh2"></option>
+          <option value="sh4"></option>
+        </select>
         <div class="spacer"></div>
-        <label id="label_ranking_product_search" for="ranking-product-input" class="prodrank-search-label"></label>
-        <input type="text" id="ranking-product-input" class="sidebar-field" list="ranking-product-datalist" autocomplete="off">
-        <datalist id="ranking-product-datalist"></datalist>
-        <p class="prodrank-full-label" id="ranking-product-full-label"></p>
+        <label id="label_ranking_scope" for="ranking-scope-select"></label>
+        <select id="ranking-scope-select" class="sidebar-field"></select>
       </div>
     </div>
 
