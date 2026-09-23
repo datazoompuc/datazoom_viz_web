@@ -35,7 +35,9 @@
       view_change: "Variação",
       title_change: "Variação entre dois anos",
       subtitle_change: "Municípios ordenados pela variação no valor exportado",
-      label_state: "Estado",
+      label_uf_filter: "Estado",
+      uf_all: "Todos os estados",
+      title_composition_uf: "Composição das exportações — {uf}",
       label_year_a: "Ano A",
       label_year_b: "Ano B",
       change_axis_label: "Valor exportado (US$)",
@@ -125,7 +127,9 @@
       view_change: "Change",
       title_change: "Change between two years",
       subtitle_change: "Municipalities ranked by change in export value",
-      label_state: "State",
+      label_uf_filter: "State",
+      uf_all: "All states",
+      title_composition_uf: "Export composition — {uf}",
       label_year_a: "Year A",
       label_year_b: "Year B",
       change_axis_label: "Export value (US$)",
@@ -220,7 +224,15 @@
     view: "ranking", // "ranking" | "composition" | "change" | "trends" | "explore"
     playing: false,
     playTimer: null,
-    changeState: null, // UF filter for the change (dumbbell) view
+    // Shared across every view (a single global filter, not one per view —
+    // same precedent as topN, which Ranking and Tendências already share
+    // as one control). null = "Todos os estados". Variação is the one
+    // exception: its dumbbell chart can't render all 446 municipalities
+    // at once, so it always needs one concrete state — if this is still
+    // null the first time Variação is opened, its own setView handling
+    // picks ufList[0] and writes it back here, so the choice stays
+    // visible and consistent everywhere else too.
+    uf: null,
     yearA: null,
     yearB: null,
     exploreMunis: [], // hand-picked municipalities for the explore view
@@ -284,9 +296,14 @@
   let mapCellByKey; // "municipioIdx|ano|floresta" -> {categoriaIdx, produtoIdx, valor}
   let leafletMap, mapLegendControl;
   let mapLayersByCodIbge;
+  let mapBoundsByUf; // uf -> L.LatLngBounds, built once from the loaded geometry
+  let mapFittedUf; // uf (or null) the map view is currently zoomed to — avoids re-fitting on every renderMap() call (mode switch, lang toggle)
   const MAP_NODATA_PATTERN_ID = "nodata-hatch";
   const MAP_NODATA_BASE = "#deeaef";
   const MAP_NODATA_LINE = "#a2adb1";
+  const MAP_OUTOFSTATE_FILL = "#e3e7e9";
+  const MAP_OUTOFSTATE_OPACITY = 0.35;
+  const MAP_INSTATE_OPACITY = 0.9;
   const MAP_RATIO_COLORS = { same: "#666666", nao: "#D55E00", sim: "#009E73" };
 
   let sparkSeries = [];
@@ -823,6 +840,12 @@
 
   function buildMapLayer(municGeo) {
     mapLayersByCodIbge = new Map();
+    mapBoundsByUf = new Map();
+    // mapData is already loaded by this point (buildMapLayer only runs from
+    // initLeafletMap, itself only reached after ensureMapReady's Promise.all
+    // resolves) — geometry (municGeo) carries no uf attribute of its own,
+    // so it's looked up from the attributes dataset by cod_ibge instead.
+    const ufByCodIbge = new Map(mapData.municipios.map((m) => [m.cod_ibge, m.uf]));
     let openTooltipLayer = null;
 
     L.geoJSON(municGeo, {
@@ -836,7 +859,14 @@
         color: "#cccccc"
       }),
       onEachFeature: (feature, layer) => {
-        mapLayersByCodIbge.set(String(feature.properties.cod_ibge), layer);
+        const codIbge = String(feature.properties.cod_ibge);
+        mapLayersByCodIbge.set(codIbge, layer);
+        const uf = ufByCodIbge.get(codIbge);
+        if (uf) {
+          const bounds = layer.getBounds();
+          if (mapBoundsByUf.has(uf)) mapBoundsByUf.get(uf).extend(bounds);
+          else mapBoundsByUf.set(uf, bounds);
+        }
         layer.bindTooltip("", { sticky: true });
 
         layer.on("mouseover", () => {
@@ -847,7 +877,10 @@
         });
         layer.on("mouseout", () => {
           if (openTooltipLayer === layer) openTooltipLayer = null;
-          layer.setStyle({ weight: 1, opacity: 1, fillOpacity: 0.9, color: mapStrokeColorFor(layer.options.fillColor) });
+          // Reverts to whatever updateMapColors last set (layer.options.fillOpacity),
+          // not a fixed 0.9 — an out-of-state municipality (dimmed to
+          // MAP_OUTOFSTATE_OPACITY) must stay dimmed after the hover ends.
+          layer.setStyle({ weight: 1, opacity: 1, fillOpacity: layer.options.fillOpacity, color: mapStrokeColorFor(layer.options.fillColor) });
         });
       }
     }).addTo(leafletMap);
@@ -934,7 +967,7 @@
       loadingDiv.textContent = t.map_loading;
       ensureMapReady().then(() => {
         loadingDiv.remove();
-        if (state.view === "map") updateMapColors();
+        if (state.view === "map") { fitMapToUf(); updateMapColors(); }
       });
       return;
     }
@@ -943,7 +976,21 @@
     // selected, so Leaflet's internally-cached container size is stale —
     // without this it renders tiles into a zero-size viewport.
     leafletMap.invalidateSize();
+    fitMapToUf();
     updateMapColors();
+  }
+
+  // Only re-fits when the selected state actually changed (tracked via
+  // mapFittedUf) — renderMap() also runs on every map-mode switch and lang
+  // toggle, which shouldn't reset the user's own pan/zoom.
+  function fitMapToUf() {
+    if (mapFittedUf === state.uf) return;
+    mapFittedUf = state.uf;
+    if (state.uf && mapBoundsByUf && mapBoundsByUf.has(state.uf)) {
+      leafletMap.fitBounds(mapBoundsByUf.get(state.uf), { padding: [20, 20] });
+    } else {
+      leafletMap.setView([-7, -58], 5);
+    }
   }
 
   function updateMapColors() {
@@ -952,6 +999,16 @@
     mapData.municipios.forEach((municipio, municipioIdx) => {
       const layer = mapLayersByCodIbge.get(municipio.cod_ibge);
       if (!layer) return;
+
+      // Out-of-state municipalities are dimmed to a flat neutral fill,
+      // distinct from the no-data hatch pattern (which means "in scope, but
+      // nothing to show"), and skip both the category lookups and tooltip
+      // detail below — there's nothing state-specific to report for them.
+      if (state.uf && municipio.uf !== state.uf) {
+        layer.setStyle({ fillColor: MAP_OUTOFSTATE_FILL, color: MAP_OUTOFSTATE_FILL, fillOpacity: MAP_OUTOFSTATE_OPACITY });
+        layer.setTooltipContent(mapTooltipHtml(t, municipio, null, null, null));
+        return;
+      }
 
       let fillColor, cellAll, cellForest, ratioClass;
       if (state.mapMode === "ratio") {
@@ -964,7 +1021,7 @@
         fillColor = cellAll ? mapCategoryColor(cellAll.categoriaIdx) : "url(#" + MAP_NODATA_PATTERN_ID + ")";
       }
 
-      layer.setStyle({ fillColor, color: mapStrokeColorFor(fillColor) });
+      layer.setStyle({ fillColor, color: mapStrokeColorFor(fillColor), fillOpacity: MAP_INSTATE_OPACITY });
       layer.setTooltipContent(mapTooltipHtml(t, municipio, cellAll, cellForest, ratioClass));
     });
     renderMapLegend(t);
@@ -1024,7 +1081,10 @@
       : dictionary.year_final;
     state.topN = [10, 15, 20, 30].includes(qTopN) ? qTopN : 15;
     state.view = ["ranking", "composition", "change", "trends", "explore", "map"].includes(qView) ? qView : "ranking";
-    state.changeState = ufList.includes(qState) ? qState : ufList[0];
+    // null (not ufList[0]) if absent/invalid — "Todos os estados" is a
+    // valid, common default for every view except Variação, which forces
+    // a concrete state itself the first time it's opened (see setView).
+    state.uf = ufList.includes(qState) ? qState : null;
     state.yearA = Number.isFinite(qYearA) && qYearA >= dictionary.year_inicio && qYearA <= dictionary.year_final
       ? qYearA
       : dictionary.year_inicio;
@@ -1056,7 +1116,7 @@
     params.set("year", state.year);
     params.set("topn", state.topN);
     params.set("view", state.view);
-    params.set("state", state.changeState);
+    params.set("state", state.uf || "");
     params.set("yeara", state.yearA);
     params.set("yearb", state.yearB);
     params.set("munis", state.exploreMunis.join("|"));
@@ -1222,20 +1282,8 @@
     syncExploreAggControls();
     populateExploreCategorySelect();
 
-    const compositionScopeSelect = document.getElementById("composition-scope-select");
-    const regionOpt = document.createElement("option");
-    regionOpt.value = "";
-    regionOpt.textContent = I18N[state.lang].composition_scope_region;
-    compositionScopeSelect.appendChild(regionOpt);
-    const compositionScopeMunis = computeTrendMunicipalities(municipioMeta.size).filter((m) => compositionIndexSec.byMunicipio.has(m));
-    for (const municipio of compositionScopeMunis) {
-      const opt = document.createElement("option");
-      opt.value = municipio;
-      opt.textContent = municipio;
-      compositionScopeSelect.appendChild(opt);
-    }
-    compositionScopeSelect.value = state.compositionScope || "";
-    compositionScopeSelect.addEventListener("change", (e) => {
+    populateCompositionScopeSelect();
+    document.getElementById("composition-scope-select").addEventListener("change", (e) => {
       state.compositionScope = e.target.value || null;
       updateUrl();
       render(); // title is scope-dependent ("Composição — {municipio}"), not just the chart
@@ -1249,17 +1297,9 @@
       render(); // title/legend depend on the aggregation too, not just the chart
     });
 
-    const munisSelect = document.getElementById("explore-munis-select");
-    const munisByTotal = computeTrendMunicipalities(municipioMeta.size);
-    for (const municipio of munisByTotal) {
-      const opt = document.createElement("option");
-      opt.value = municipio;
-      opt.textContent = municipio;
-      opt.selected = state.exploreMunis.includes(municipio);
-      munisSelect.appendChild(opt);
-    }
-    munisSelect.addEventListener("change", () => {
-      state.exploreMunis = Array.from(munisSelect.selectedOptions).map((o) => o.value);
+    populateExploreMunisSelect();
+    document.getElementById("explore-munis-select").addEventListener("change", (e) => {
+      state.exploreMunis = Array.from(e.target.selectedOptions).map((o) => o.value);
       updateUrl();
       renderExplore();
     });
@@ -1280,18 +1320,29 @@
       renderExplore();
     });
 
-    const stateSelect = document.getElementById("change-state-select");
+    const ufFilterSelect = document.getElementById("uf-filter-select");
     for (const uf of ufList) {
       const opt = document.createElement("option");
       opt.value = uf;
       opt.textContent = uf;
-      stateSelect.appendChild(opt);
+      ufFilterSelect.appendChild(opt);
     }
-    stateSelect.value = state.changeState;
-    stateSelect.addEventListener("change", (e) => {
-      state.changeState = e.target.value;
+    ufFilterSelect.value = state.uf || "";
+    ufFilterSelect.addEventListener("change", (e) => {
+      state.uf = e.target.value || null;
+      // Explorar's hand-picked municipalities must all belong to the newly
+      // selected state; if that empties the selection, fall back to that
+      // state's own top-5 by total export value (same convention initState
+      // uses for the app's very first default pick).
+      const validMunis = state.exploreMunis.filter((m) => !state.uf || (municipioMeta.get(m) && municipioMeta.get(m).uf === state.uf));
+      state.exploreMunis = validMunis.length ? validMunis : computeTrendMunicipalities(5);
+      // Composição's per-municipality scope is meaningless once that place
+      // falls outside the newly selected state.
+      if (state.compositionScope && (!municipioMeta.get(state.compositionScope) || municipioMeta.get(state.compositionScope).uf !== state.uf)) {
+        state.compositionScope = null;
+      }
       updateUrl();
-      renderChange();
+      render();
     });
 
     const yearASelect = document.getElementById("change-year-a");
@@ -1321,6 +1372,15 @@
   function setView(view) {
     stopPlaying();
     state.view = view;
+    // Variação's dumbbell chart can't render all 446 municipalities at
+    // once, so — unlike every other view — it needs a concrete state the
+    // first time it's opened. Once picked, the choice stays set (and
+    // visible/consistent) everywhere else too, since state.uf is one
+    // global filter, not one per view.
+    if (view === "change" && !state.uf) {
+      state.uf = ufList[0];
+      document.getElementById("uf-filter-select").value = state.uf;
+    }
     document.getElementById("view-ranking").classList.toggle("active", view === "ranking");
     document.getElementById("view-composition").classList.toggle("active", view === "composition");
     document.getElementById("view-change").classList.toggle("active", view === "change");
@@ -1481,7 +1541,8 @@
     document.getElementById("view-map").textContent = t.view_map;
     document.getElementById("ranking-axis-label").textContent = t.ranking_axis_label;
     document.getElementById("change-axis-label").textContent = t.change_axis_label;
-    document.getElementById("label_state").textContent = t.label_state;
+    document.getElementById("label_uf_filter").textContent = t.label_uf_filter;
+    document.getElementById("uf-filter-select").options[0].textContent = t.uf_all;
     document.getElementById("label_year_a").textContent = t.label_year_a;
     document.getElementById("label_year_b").textContent = t.label_year_b;
     document.getElementById("label_explore_munis").textContent = t.label_explore_munis;
@@ -1489,7 +1550,6 @@
     document.getElementById("label_log_scale").textContent = t.label_log_scale;
     document.getElementById("label_index_first").textContent = t.label_index_first;
     document.getElementById("label_composition_scope").textContent = t.label_composition_scope;
-    document.getElementById("composition-scope-select").options[0].textContent = t.composition_scope_region;
     document.getElementById("label_composition_agg").textContent = t.label_agg_level;
     document.getElementById("label_ranking_agg_level").textContent = t.label_agg_level;
     document.getElementById("label_ranking_category").textContent = t.label_category;
@@ -1507,8 +1567,8 @@
     document.getElementById("lang-toggle-label").textContent = t.btn_lang;
 
     // Aggregation-level <option> text is language-specific, set here rather
-    // than hardcoded in the HTML (same convention as the scope select's
-    // first option above).
+    // than hardcoded in the HTML (same convention as the scope select's own
+    // first option, set inside populateCompositionScopeSelect below).
     const setAggOptionLabels = (selectId) => {
       const select = document.getElementById(selectId);
       for (const opt of select.options) {
@@ -1528,13 +1588,17 @@
     populateRankingCategorySelect();
     populateTrendsCategorySelect();
     populateExploreCategorySelect();
+    populateCompositionScopeSelect();
+    populateExploreMunisSelect();
 
     const rankingFilterLabel = currentRankingFilterLabel();
     const trendsFilterLabel = currentTrendsFilterLabel();
     const exploreFilterLabel = currentExploreFilterLabel();
     const titles = {
       ranking: rankingFilterLabel ? t.title_ranking_product.replace("{produto}", rankingFilterLabel) : t.title_ranking,
-      composition: state.compositionScope ? t.title_composition_muni.replace("{municipio}", state.compositionScope) : t.title_composition,
+      composition: state.compositionScope
+        ? t.title_composition_muni.replace("{municipio}", state.compositionScope)
+        : (state.uf ? t.title_composition_uf.replace("{uf}", state.uf) : t.title_composition),
       change: t.title_change,
       trends: trendsFilterLabel ? t.title_trends_category.replace("{categoria}", trendsFilterLabel) : t.title_trends,
       explore: exploreFilterLabel ? t.title_explore_category.replace("{categoria}", exploreFilterLabel) : t.title_explore,
@@ -1599,13 +1663,24 @@
       return;
     }
 
-    const rows = totalsByYear.get(state.year) || [];
+    const rows = (totalsByYear.get(state.year) || [])
+      .filter((r) => !state.uf || (municipioMeta.get(r.municipio) && municipioMeta.get(r.municipio).uf === state.uf));
     const top = rows.slice(0, state.topN);
     const maxVal = top.length ? top[0].valor : 1;
 
-    const regionTotal = regionTotalByYear.get(state.year);
-    document.getElementById("region-total-label").innerHTML =
-      regionTotal != null ? t.region_total_prefix + "<b>" + fmtAbbrev(regionTotal) + "</b>" : "";
+    // Region-wide total only makes sense unfiltered — once a state is
+    // selected, show that state's own total (same prefix Ranking's
+    // product/category filters already use for a "not the whole region"
+    // total) instead of "Total Amazônia Legal" next to a filtered list.
+    if (state.uf) {
+      const stateTotal = rows.reduce((sum, r) => sum + r.valor, 0);
+      document.getElementById("region-total-label").innerHTML =
+        rows.length ? t.ranking_product_total_prefix + "<b>" + fmtAbbrev(stateTotal) + "</b>" : "";
+    } else {
+      const regionTotal = regionTotalByYear.get(state.year);
+      document.getElementById("region-total-label").innerHTML =
+        regionTotal != null ? t.region_total_prefix + "<b>" + fmtAbbrev(regionTotal) + "</b>" : "";
+    }
 
     const container = document.getElementById(RANKING_IDS.rows);
     container.innerHTML = "";
@@ -1619,6 +1694,7 @@
   function renderRankingFromRows(t, allRows) {
     const rows = allRows
       .filter((r) => r.ano === state.year)
+      .filter((r) => !state.uf || (municipioMeta.get(r.municipio) && municipioMeta.get(r.municipio).uf === state.uf))
       .map((r) => ({ municipio: r.municipio, valor: r.valor }))
       .sort((a, b) => b.valor - a.valor);
     const top = rows.slice(0, state.topN);
@@ -1841,10 +1917,42 @@
 
     const series = state.compositionAgg === "sh2" ? compositionSeriesSh2 : compositionSeriesSec;
     const index = state.compositionAgg === "sh2" ? compositionIndexSh2 : compositionIndexSec;
-    activeCompositionSeries = state.compositionScope
-      ? buildCompositionSeries(index.byMunicipio.get(state.compositionScope) || [], dictionary)
-      : series;
+    // Three-way scope: one municipality's own composition (recomputed from
+    // its own rows, since its top-8 categories aren't the region's top-8) →
+    // the selected state's aggregate (same recompute, summed across that
+    // state's municipalities) → the whole-region precomputed series.
+    if (state.compositionScope) {
+      activeCompositionSeries = buildCompositionSeries(index.byMunicipio.get(state.compositionScope) || [], dictionary);
+    } else if (state.uf) {
+      activeCompositionSeries = buildCompositionSeries(buildStateCompositionRows(index, state.uf), dictionary);
+    } else {
+      activeCompositionSeries = series;
+    }
     renderStackedComposition(activeCompositionSeries, { svg: "composition-svg", guide: "comp-guide", legend: "composition-legend" });
+  }
+
+  // Sums every municipality-in-uf's own {produto,ano,valor} rows down to one
+  // row per produto+ano pair before handing off to buildCompositionSeries —
+  // that function's byProdYear build does .set(), not +=, on the assumption
+  // that its input has at most one row per produto+ano (true for a single
+  // municipality's own rows, or the precomputed region-wide series, but NOT
+  // true for several municipalities' rows concatenated naively).
+  function buildStateCompositionRows(index, uf) {
+    const sums = new Map(); // "produto|ano" -> valor
+    for (const [municipio, rows] of index.byMunicipio) {
+      const meta = municipioMeta.get(municipio);
+      if (!meta || meta.uf !== uf) continue;
+      for (const r of rows) {
+        const key = r.produto + "|" + r.ano;
+        sums.set(key, (sums.get(key) || 0) + r.valor);
+      }
+    }
+    const result = [];
+    for (const [key, valor] of sums) {
+      const sep = key.lastIndexOf("|");
+      result.push({ produto: key.slice(0, sep), ano: parseInt(key.slice(sep + 1), 10), valor });
+    }
+    return result;
   }
 
   function showCompositionLoading() {
@@ -2052,7 +2160,7 @@
     document.getElementById("change-legend-a-label").textContent = state.yearA;
     document.getElementById("change-legend-b-label").textContent = state.yearB;
 
-    const rows = computeChangeRows(state.changeState, state.yearA, state.yearB);
+    const rows = computeChangeRows(state.uf, state.yearA, state.yearB);
     const domain = changeDomain(rows);
     document.getElementById("change-axis-min").textContent = fmtAbbrev(domain.min);
     document.getElementById("change-axis-max").textContent = fmtAbbrev(domain.max);
@@ -2144,14 +2252,59 @@
   // Explore's default selection and Composição's scope-select population
   // (both call this with just topN) are unaffected by Tendências' own
   // category filter — only renderTrends() itself passes a filtered source.
-  function computeTrendMunicipalities(topN, dataSource = totalsByMunicipio) {
-    const totals = Array.from(dataSource.entries()).map(([municipio, years]) => {
-      let sum = 0;
-      for (const v of years.values()) sum += v;
-      return { municipio, total: sum };
-    });
+  // uf defaults to the current global filter so every caller (Tendências'
+  // own top-N, and the Composição-scope/Explorar-munis picker population
+  // below) automatically respects it without threading it through by hand.
+  function computeTrendMunicipalities(topN, dataSource = totalsByMunicipio, uf = state.uf) {
+    const totals = Array.from(dataSource.entries())
+      .filter(([municipio]) => !uf || (municipioMeta.get(municipio) && municipioMeta.get(municipio).uf === uf))
+      .map(([municipio, years]) => {
+        let sum = 0;
+        for (const v of years.values()) sum += v;
+        return { municipio, total: sum };
+      });
     totals.sort((a, b) => b.total - a.total);
     return totals.slice(0, topN).map((d) => d.municipio);
+  }
+
+  // Rebuilt on every render() (language change, uf filter change, etc.) —
+  // same idiom as populateRankingCategorySelect/populateTrendsCategorySelect/
+  // populateExploreCategorySelect. The list of municipios is uf-filtered via
+  // computeTrendMunicipalities' own default; the "whole region" option (value
+  // "") stays first and its own label follows the uf filter too (see render()
+  // and title_composition_uf) rather than needing a second option.
+  function populateCompositionScopeSelect() {
+    const select = document.getElementById("composition-scope-select");
+    select.innerHTML = "";
+    const regionOpt = document.createElement("option");
+    regionOpt.value = "";
+    regionOpt.textContent = I18N[state.lang].composition_scope_region;
+    select.appendChild(regionOpt);
+    const munis = computeTrendMunicipalities(municipioMeta.size).filter((m) => compositionIndexSec.byMunicipio.has(m));
+    for (const municipio of munis) {
+      const opt = document.createElement("option");
+      opt.value = municipio;
+      opt.textContent = municipio;
+      select.appendChild(opt);
+    }
+    select.value = state.compositionScope && munis.includes(state.compositionScope) ? state.compositionScope : "";
+  }
+
+  // Same idiom, for Explorar's municipality multi-select — uf-filtered via
+  // computeTrendMunicipalities' own default. Selection (state.exploreMunis)
+  // is applied via each option's `selected`, not select.value, since this is
+  // a multi-select.
+  function populateExploreMunisSelect() {
+    const select = document.getElementById("explore-munis-select");
+    select.innerHTML = "";
+    const munis = computeTrendMunicipalities(municipioMeta.size);
+    for (const municipio of munis) {
+      const opt = document.createElement("option");
+      opt.value = municipio;
+      opt.textContent = municipio;
+      opt.selected = state.exploreMunis.includes(municipio);
+      select.appendChild(opt);
+    }
   }
 
   // Inverts a byProduto row list (already the other-direction read of the
