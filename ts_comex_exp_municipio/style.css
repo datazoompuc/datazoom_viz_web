@@ -272,9 +272,19 @@ html, body {
 }
 .spark-tooltip strong { font-weight: 700; }
 
-.slider-row { display: flex; align-items: center; gap: 8px; }
+/* Label + play/counter share a header row above the chart, so the slider
+   itself (year-slider-full, below) can span the exact same full width as
+   the sparkline above it instead of being squeezed between them — the two
+   read as one continuous scale instead of two misaligned ones. */
+.slider-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.slider-header label { margin-bottom: 0; }
+.slider-header-controls { display: flex; align-items: center; gap: 8px; }
 
-#year-slider { flex: 1 1 auto; accent-color: #2c5f64; }
+/* margin: 0 overrides the browser default (2px left/right on
+   input[type=range] in Chrome/Safari) that would otherwise throw the
+   slider's track a couple pixels out of alignment with the sparkline
+   above it, despite both spanning the same 100% width. */
+.year-slider-full { display: block; width: 100%; margin: 2px 0 0; accent-color: #2c5f64; }
 
 .year-value {
   min-width: 3.5em;

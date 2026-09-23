@@ -41,7 +41,15 @@
     </div>
 
     <div class="var_selec_group slider-inline">
-      <label id="label_year" for="year-slider"></label>
+      <div class="slider-header">
+        <label id="label_year" for="year-slider"></label>
+        <div class="slider-header-controls">
+          <button id="play-btn" class="icon-btn" title="Play/Pause">
+            <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          </button>
+          <span id="year-value" class="year-value"></span>
+        </div>
+      </div>
       <div class="sparkline-wrap">
         <svg id="year-sparkline" viewBox="0 0 260 40" preserveAspectRatio="none">
           <path id="spark-area" class="spark-area"></path>
@@ -53,13 +61,7 @@
         </svg>
         <div id="spark-tooltip" class="spark-tooltip"></div>
       </div>
-      <div class="slider-row">
-        <button id="play-btn" class="icon-btn" title="Play/Pause">
-          <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-        </button>
-        <input type="range" id="year-slider" step="1">
-        <span id="year-value" class="year-value"></span>
-      </div>
+      <input type="range" id="year-slider" step="1" class="year-slider-full">
     </div>
 
     <div class="spacer"></div>
