@@ -51,6 +51,10 @@
       title_trends_category: "Tendências por município — {categoria}",
       subtitle_trends: "Top municípios por valor total exportado, 1997–2025",
       subtitle_trends_category: "Top municípios por valor exportado na categoria, 1997–2025",
+      label_trends_orientation: "Tendências de",
+      title_trends_produtos: "Tendências por categoria",
+      title_trends_produtos_scope: "Tendências por categoria — {scope}",
+      subtitle_trends_produtos: "Top categorias por valor total exportado, 1997–2025",
       label_since_prefix: "Desde ",
       view_explore: "Explorar",
       title_explore: "Comparar municípios",
@@ -59,6 +63,12 @@
       subtitle_explore_category: "Valor exportado (US$) na categoria, ao longo do tempo, municípios selecionados",
       label_explore_munis: "Municípios (Ctrl/Cmd+clique para vários)",
       explore_hint: "Ordenado por valor total exportado",
+      label_explore_orientation: "Explorar por",
+      title_explore_produtos: "Comparar categorias",
+      title_explore_produtos_scope: "Comparar categorias — {scope}",
+      subtitle_explore_produtos: "Valor exportado (US$) ao longo do tempo, categorias selecionadas",
+      label_explore_produtos: "Categorias (Ctrl/Cmd+clique para várias)",
+      uf_filter_disabled_hint: "Não se aplica: Estado é o eixo desta visualização",
       label_log_scale: "Escala logarítmica",
       label_index_first: "Indexado ao ano inicial (=100)",
       explore_no_base: "sem exportação em {year}",
@@ -161,6 +171,10 @@
       title_trends_category: "Trends by municipality — {categoria}",
       subtitle_trends: "Top municipalities by total export value, 1997–2025",
       subtitle_trends_category: "Top municipalities by export value in the category, 1997–2025",
+      label_trends_orientation: "Trend by",
+      title_trends_produtos: "Trends by category",
+      title_trends_produtos_scope: "Trends by category — {scope}",
+      subtitle_trends_produtos: "Top categories by total export value, 1997–2025",
       label_since_prefix: "Since ",
       view_explore: "Explore",
       title_explore: "Compare municipalities",
@@ -169,6 +183,12 @@
       subtitle_explore_category: "Export value (US$) in the category, over time, selected municipalities",
       label_explore_munis: "Municipalities (Ctrl/Cmd+click for multiple)",
       explore_hint: "Sorted by total export value",
+      label_explore_orientation: "Explore by",
+      title_explore_produtos: "Compare categories",
+      title_explore_produtos_scope: "Compare categories — {scope}",
+      subtitle_explore_produtos: "Export value (US$) over time, selected categories",
+      label_explore_produtos: "Categories (Ctrl/Cmd+click for multiple)",
+      uf_filter_disabled_hint: "Doesn't apply: State is this view's own axis",
       label_log_scale: "Log scale",
       label_index_first: "Indexed to first year (=100)",
       explore_no_base: "no exports in {year}",
@@ -188,7 +208,7 @@
       agg_level_sh4: "Specific product (SH4)",
       label_category: "Category",
       title_ranking_product: "Ranking of exporting municipalities — {produto}",
-      label_ranking_orientation: "Rank",
+      label_ranking_orientation: "Rank by",
       ranking_orientation_municipio: "Municipalities",
       ranking_orientation_produto: "Products",
       label_ranking_scope: "Scope",
@@ -287,6 +307,16 @@
     exploreIndex: false,
     exploreAggLevel: "all", // "all" | "sec" | "sh2" — what Explorar's lines are filtered by
     exploreCategory: null, // selected SEC or SH2 category name, used when exploreAggLevel is "sec"/"sh2"
+    // Explorar's own axis swap: "municipio" (default, above) plots
+    // hand-picked municípios as lines; "produto" instead plots hand-picked
+    // product categories, for one município or the current state/region —
+    // same 3-way scope Ranking/Variação/Tendências use, and the same
+    // hand-picked-multiple-entities idiom Explorar's own municipio mode
+    // already uses (not an automatic top-N, unlike Tendências' cards).
+    exploreOrientation: "municipio", // "municipio" | "produto"
+    exploreProdutoLevel: "sec", // "sec" | "sh2" — produto-orientation's taxonomy
+    exploreProdutos: [], // hand-picked categories for produto-orientation, mirrors exploreMunis
+    exploreScope: null, // municipio name, or null = state/region aggregate, used when exploreOrientation is "produto"
     compositionScope: null, // null = whole-region composition; a municipio name = that place's own composition
     compositionAgg: "sec", // "sec" | "sh2" — which product-category taxonomy the Composição chart uses
     // Composição's own axis swap: "categoria" (default, above) breaks one
@@ -311,6 +341,13 @@
     rankingScope: null, // municipio name, or null = whole state/region (mirrors compositionScope)
     trendsAggLevel: "all", // "all" | "sec" | "sh2" — what Tendências is filtered by
     trendsCategory: null, // selected SEC or SH2 category name, used when trendsAggLevel is "sec"/"sh2"
+    // Tendências' own axis swap: "municipio" (default, above) shows top-N
+    // municípios by total (or by category); "produto" instead shows top-N
+    // product categories, for one município or the current state/region —
+    // same 3-way scope Ranking/Variação use.
+    trendsOrientation: "municipio", // "municipio" | "produto"
+    trendsProdutoLevel: "sec", // "sec" | "sh2" — produto-orientation's taxonomy
+    trendsScope: null, // municipio name, or null = state/region aggregate, used when trendsOrientation is "produto"
     mapMode: "forest" // "forest" | "all" | "ratio" — shares state.year with the rest of the app
   };
 
@@ -1215,8 +1252,15 @@
     const qRankScope = params.get("rankscope");
     const qTrendsAggLevel = params.get("trendsagglevel");
     const qTrendsCategory = params.get("trendscategory");
+    const qTrendsOrientation = params.get("trendsorientation");
+    const qTrendsProdutoLevel = params.get("trendsprodutolevel");
+    const qTrendsScope = params.get("trendsscope");
     const qExploreAggLevel = params.get("exploreagglevel");
     const qExploreCategory = params.get("explorecategory");
+    const qExploreOrientation = params.get("exploreorientation");
+    const qExploreProdutoLevel = params.get("exploreprodutolevel");
+    const qExploreProdutos = params.get("exploreprodutos");
+    const qExploreScope = params.get("explorescope");
     const qChangeOrientation = params.get("changeorientation");
     const qChangeAggLevel = params.get("changeagglevel");
     const qChangeCategory = params.get("changecategory");
@@ -1266,8 +1310,15 @@
     state.rankingScope = qRankScope && totalsByMunicipio.has(qRankScope) ? qRankScope : null;
     state.trendsAggLevel = ["all", "sec", "sh2"].includes(qTrendsAggLevel) ? qTrendsAggLevel : "all";
     state.trendsCategory = qTrendsCategory || null;
+    state.trendsOrientation = qTrendsOrientation === "produto" ? "produto" : "municipio";
+    state.trendsProdutoLevel = ["sec", "sh2"].includes(qTrendsProdutoLevel) ? qTrendsProdutoLevel : "sec";
+    state.trendsScope = qTrendsScope && totalsByMunicipio.has(qTrendsScope) ? qTrendsScope : null;
     state.exploreAggLevel = ["all", "sec", "sh2"].includes(qExploreAggLevel) ? qExploreAggLevel : "all";
     state.exploreCategory = qExploreCategory || null;
+    state.exploreOrientation = qExploreOrientation === "produto" ? "produto" : "municipio";
+    state.exploreProdutoLevel = ["sec", "sh2"].includes(qExploreProdutoLevel) ? qExploreProdutoLevel : "sec";
+    state.exploreProdutos = qExploreProdutos ? qExploreProdutos.split("|").filter(Boolean) : [];
+    state.exploreScope = qExploreScope && totalsByMunicipio.has(qExploreScope) ? qExploreScope : null;
     state.mapMode = ["forest", "all", "ratio"].includes(qMapMode) ? qMapMode : "forest";
   }
 
@@ -1295,8 +1346,15 @@
     params.set("rankscope", state.rankingScope || "");
     params.set("trendsagglevel", state.trendsAggLevel);
     params.set("trendscategory", state.trendsCategory || "");
+    params.set("trendsorientation", state.trendsOrientation);
+    params.set("trendsprodutolevel", state.trendsProdutoLevel);
+    params.set("trendsscope", state.trendsScope || "");
     params.set("exploreagglevel", state.exploreAggLevel);
     params.set("explorecategory", state.exploreCategory || "");
+    params.set("exploreorientation", state.exploreOrientation);
+    params.set("exploreprodutolevel", state.exploreProdutoLevel);
+    params.set("exploreprodutos", state.exploreProdutos.join("|"));
+    params.set("explorescope", state.exploreScope || "");
     params.set("changeorientation", state.changeOrientation);
     params.set("changeagglevel", state.changeAggLevel);
     params.set("changecategory", state.changeCategory || "");
@@ -1455,6 +1513,31 @@
     syncTrendsAggControls();
     populateTrendsCategorySelect();
 
+    // ---- Tendências' axis swap: top-N product categories, for one
+    // município/state, instead of top-N municípios for one category. ----
+
+    document.getElementById("trends-orientation-municipio").addEventListener("click", () => setTrendsOrientation("municipio"));
+    document.getElementById("trends-orientation-produto").addEventListener("click", () => setTrendsOrientation("produto"));
+    document.getElementById("trends-orientation-municipio").classList.toggle("active", state.trendsOrientation === "municipio");
+    document.getElementById("trends-orientation-produto").classList.toggle("active", state.trendsOrientation === "produto");
+    document.getElementById("trends-by-municipio-group").classList.toggle("hidden", state.trendsOrientation !== "municipio");
+    document.getElementById("trends-by-produto-group").classList.toggle("hidden", state.trendsOrientation !== "produto");
+
+    const trendsProdutoLevelSelect = document.getElementById("trends-produto-level-select");
+    trendsProdutoLevelSelect.value = state.trendsProdutoLevel;
+    trendsProdutoLevelSelect.addEventListener("change", (e) => {
+      state.trendsProdutoLevel = e.target.value;
+      updateUrl();
+      render();
+    });
+
+    populateTrendsScopeSelect();
+    document.getElementById("trends-scope-select").addEventListener("change", (e) => {
+      state.trendsScope = e.target.value || null;
+      updateUrl();
+      render();
+    });
+
     // ---- Explorar's aggregation-level tier: same idea as Tendências',
     // filtering the overlaid-line comparison to one SEC/SH2 category
     // instead of only total export value. ----
@@ -1477,6 +1560,41 @@
 
     syncExploreAggControls();
     populateExploreCategorySelect();
+
+    // ---- Explorar's axis swap: hand-picked product categories, for one
+    // município/state, plotted as lines — instead of hand-picked
+    // municípios. ----
+
+    document.getElementById("explore-orientation-municipio").addEventListener("click", () => setExploreOrientation("municipio"));
+    document.getElementById("explore-orientation-produto").addEventListener("click", () => setExploreOrientation("produto"));
+    document.getElementById("explore-orientation-municipio").classList.toggle("active", state.exploreOrientation === "municipio");
+    document.getElementById("explore-orientation-produto").classList.toggle("active", state.exploreOrientation === "produto");
+    document.getElementById("explore-by-municipio-group").classList.toggle("hidden", state.exploreOrientation !== "municipio");
+    document.getElementById("explore-by-produto-group").classList.toggle("hidden", state.exploreOrientation !== "produto");
+
+    const exploreProdutoLevelSelect = document.getElementById("explore-produto-level-select");
+    exploreProdutoLevelSelect.value = state.exploreProdutoLevel;
+    exploreProdutoLevelSelect.addEventListener("change", (e) => {
+      state.exploreProdutoLevel = e.target.value;
+      updateUrl();
+      state.exploreProdutos = []; // different taxonomy — let populateExploreProdutosSelect re-default
+      populateExploreProdutosSelect();
+      render();
+    });
+
+    populateExploreScopeSelect();
+    document.getElementById("explore-scope-select").addEventListener("change", (e) => {
+      state.exploreScope = e.target.value || null;
+      updateUrl();
+      render(); // title is scope-dependent, not just the chart
+    });
+
+    populateExploreProdutosSelect();
+    document.getElementById("explore-produtos-select").addEventListener("change", (e) => {
+      state.exploreProdutos = Array.from(e.target.selectedOptions).map((o) => o.value);
+      updateUrl();
+      renderExplore();
+    });
 
     populateCompositionScopeSelect();
     document.getElementById("composition-scope-select").addEventListener("change", (e) => {
@@ -1564,12 +1682,19 @@
       if (state.compositionScope && (!municipioMeta.get(state.compositionScope) || municipioMeta.get(state.compositionScope).uf !== state.uf)) {
         state.compositionScope = null;
       }
-      // Same for Ranking's and Variação's own produto-orientation scopes.
+      // Same for Ranking's, Variação's, Tendências' and Explorar's own
+      // produto-orientation scopes.
       if (state.rankingScope && (!municipioMeta.get(state.rankingScope) || municipioMeta.get(state.rankingScope).uf !== state.uf)) {
         state.rankingScope = null;
       }
       if (state.changeScope && (!municipioMeta.get(state.changeScope) || municipioMeta.get(state.changeScope).uf !== state.uf)) {
         state.changeScope = null;
+      }
+      if (state.trendsScope && (!municipioMeta.get(state.trendsScope) || municipioMeta.get(state.trendsScope).uf !== state.uf)) {
+        state.trendsScope = null;
+      }
+      if (state.exploreScope && (!municipioMeta.get(state.exploreScope) || municipioMeta.get(state.exploreScope).uf !== state.uf)) {
+        state.exploreScope = null;
       }
       updateUrl();
       render();
@@ -1717,6 +1842,23 @@
     render();
   }
 
+  // The global state filter has no effect while Composição's "estado"
+  // orientation is active (renderCompositionByEstado never reads state.uf
+  // — state IS the axis being broken down there, so filtering to one state
+  // would collapse the whole chart to a single band). Left silently
+  // unresponsive, that reads as broken rather than intentional — this
+  // disables the control and shows a one-line explanation instead,
+  // called from render() so it stays in sync with both the current view
+  // and the current orientation.
+  function syncUfFilterAvailability() {
+    const disabled = state.view === "composition" && state.compositionOrientation === "estado";
+    const select = document.getElementById("uf-filter-select");
+    const hint = document.getElementById("uf-filter-disabled-hint");
+    select.disabled = disabled;
+    hint.textContent = disabled ? I18N[state.lang].uf_filter_disabled_hint : "";
+    hint.classList.toggle("hidden", !disabled);
+  }
+
   // Variação's own axis-swap toggle — see renderChangeByProduto for the
   // actual rendering. Same idiom as setRankingOrientation/setCompositionOrientation.
   function setChangeOrientation(orientation) {
@@ -1725,6 +1867,28 @@
     document.getElementById("change-orientation-produto").classList.toggle("active", orientation === "produto");
     document.getElementById("change-by-municipio-group").classList.toggle("hidden", orientation !== "municipio");
     document.getElementById("change-by-produto-group").classList.toggle("hidden", orientation !== "produto");
+    updateUrl();
+    render();
+  }
+
+  // Tendências' own axis-swap toggle — same idiom as setChangeOrientation.
+  function setTrendsOrientation(orientation) {
+    state.trendsOrientation = orientation;
+    document.getElementById("trends-orientation-municipio").classList.toggle("active", orientation === "municipio");
+    document.getElementById("trends-orientation-produto").classList.toggle("active", orientation === "produto");
+    document.getElementById("trends-by-municipio-group").classList.toggle("hidden", orientation !== "municipio");
+    document.getElementById("trends-by-produto-group").classList.toggle("hidden", orientation !== "produto");
+    updateUrl();
+    render();
+  }
+
+  // Explorar's own axis-swap toggle — same idiom as setChangeOrientation.
+  function setExploreOrientation(orientation) {
+    state.exploreOrientation = orientation;
+    document.getElementById("explore-orientation-municipio").classList.toggle("active", orientation === "municipio");
+    document.getElementById("explore-orientation-produto").classList.toggle("active", orientation === "produto");
+    document.getElementById("explore-by-municipio-group").classList.toggle("hidden", orientation !== "municipio");
+    document.getElementById("explore-by-produto-group").classList.toggle("hidden", orientation !== "produto");
     updateUrl();
     render();
   }
@@ -1880,8 +2044,19 @@
     document.getElementById("label_ranking_product_search").textContent = t.label_ranking_product_search;
     document.getElementById("label_trends_agg_level").textContent = t.label_agg_level;
     document.getElementById("label_trends_category").textContent = t.label_category;
+    document.getElementById("label_trends_orientation").textContent = t.label_trends_orientation;
+    document.getElementById("trends-orientation-municipio").textContent = t.ranking_orientation_municipio;
+    document.getElementById("trends-orientation-produto").textContent = t.ranking_orientation_produto;
+    document.getElementById("label_trends_produto_level").textContent = t.label_agg_level;
+    document.getElementById("label_trends_scope").textContent = t.label_ranking_scope;
     document.getElementById("label_explore_agg_level").textContent = t.label_agg_level;
     document.getElementById("label_explore_category").textContent = t.label_category;
+    document.getElementById("label_explore_orientation").textContent = t.label_explore_orientation;
+    document.getElementById("explore-orientation-municipio").textContent = t.ranking_orientation_municipio;
+    document.getElementById("explore-orientation-produto").textContent = t.ranking_orientation_produto;
+    document.getElementById("label_explore_produto_level").textContent = t.label_agg_level;
+    document.getElementById("label_explore_scope").textContent = t.label_ranking_scope;
+    document.getElementById("label_explore_produtos").textContent = t.label_explore_produtos;
     document.getElementById("label_map_mode").textContent = t.label_map_mode;
     document.getElementById("map-mode-forest").textContent = t.map_mode_forest;
     document.getElementById("map-mode-all").textContent = t.map_mode_all;
@@ -1908,6 +2083,8 @@
     setAggOptionLabels("explore-agg-level-select");
     setAggOptionLabels("change-agg-level-select");
     setAggOptionLabels("change-produto-level-select");
+    setAggOptionLabels("trends-produto-level-select");
+    setAggOptionLabels("explore-produto-level-select");
 
     document.getElementById("label_ranking_orientation").textContent = t.label_ranking_orientation;
     document.getElementById("ranking-orientation-municipio").textContent = t.ranking_orientation_municipio;
@@ -1926,6 +2103,9 @@
     populateChangeCategorySelect();
     populateChangeScopeSelect();
     populateExploreMunisSelect();
+    populateTrendsScopeSelect();
+    populateExploreScopeSelect();
+    populateExploreProdutosSelect();
 
     const rankingFilterLabel = currentRankingFilterLabel();
     const trendsFilterLabel = currentTrendsFilterLabel();
@@ -1935,8 +2115,11 @@
     const changeScopeLabel = currentChangeScopeLabel();
     // Ranking's own scope label for the produto-orientation title: a
     // specific município, else the selected state, else null (whole
-    // region) — same precedence Composição's title already uses.
+    // region) — same precedence Composição's title already uses. Same
+    // precedence for Tendências'/Explorar's own produto-orientation scope.
     const rankingScopeLabel = state.rankingScope || state.uf || null;
+    const trendsScopeLabel = state.trendsOrientation === "produto" ? (state.trendsScope || state.uf || null) : null;
+    const exploreScopeLabel = state.exploreOrientation === "produto" ? (state.exploreScope || state.uf || null) : null;
     const titles = {
       ranking: state.rankingOrientation === "produto"
         ? (rankingScopeLabel ? t.title_ranking_produtos_scope.replace("{scope}", rankingScopeLabel) : t.title_ranking_produtos)
@@ -1949,8 +2132,12 @@
       change: state.changeOrientation === "produto"
         ? (changeScopeLabel ? t.title_change_produtos_scope.replace("{scope}", changeScopeLabel) : t.title_change_produtos)
         : (changeFilterLabel ? t.title_change_category.replace("{categoria}", changeFilterLabel) : t.title_change),
-      trends: trendsFilterLabel ? t.title_trends_category.replace("{categoria}", trendsFilterLabel) : t.title_trends,
-      explore: exploreFilterLabel ? t.title_explore_category.replace("{categoria}", exploreFilterLabel) : t.title_explore,
+      trends: state.trendsOrientation === "produto"
+        ? (trendsScopeLabel ? t.title_trends_produtos_scope.replace("{scope}", trendsScopeLabel) : t.title_trends_produtos)
+        : (trendsFilterLabel ? t.title_trends_category.replace("{categoria}", trendsFilterLabel) : t.title_trends),
+      explore: state.exploreOrientation === "produto"
+        ? (exploreScopeLabel ? t.title_explore_produtos_scope.replace("{scope}", exploreScopeLabel) : t.title_explore_produtos)
+        : (exploreFilterLabel ? t.title_explore_category.replace("{categoria}", exploreFilterLabel) : t.title_explore),
       map: t[`title_map_${state.mapMode}`]
     };
     const subtitles = {
@@ -1959,12 +2146,14 @@
         ? t.subtitle_composition_estado
         : (state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition),
       change: state.changeOrientation === "produto" ? t.subtitle_change_produtos : t.subtitle_change,
-      trends: trendsFilterLabel ? t.subtitle_trends_category : t.subtitle_trends,
-      explore: exploreFilterLabel ? t.subtitle_explore_category : t.subtitle_explore,
+      trends: state.trendsOrientation === "produto" ? t.subtitle_trends_produtos : (trendsFilterLabel ? t.subtitle_trends_category : t.subtitle_trends),
+      explore: state.exploreOrientation === "produto" ? t.subtitle_explore_produtos : (exploreFilterLabel ? t.subtitle_explore_category : t.subtitle_explore),
       map: t[`subtitle_map_${state.mapMode}`]
     };
     document.getElementById("plot-title").textContent = titles[state.view];
     document.getElementById("plot-subtitle").textContent = subtitles[state.view];
+
+    syncUfFilterAvailability();
 
     const slider = document.getElementById("year-slider");
     slider.value = state.year;
@@ -2139,15 +2328,7 @@
       return;
     }
 
-    let scopeRows;
-    if (state.rankingScope) {
-      scopeRows = index.byMunicipio.get(state.rankingScope) || [];
-    } else if (state.uf) {
-      scopeRows = buildStateCompositionRows(index, state.uf);
-    } else {
-      scopeRows = level === "sh2" ? compositionSh2 : compositionSec;
-    }
-
+    const scopeRows = scopeCompositionRows(level, state.rankingScope, state.uf);
     const rows = scopeRows.filter((r) => r.ano === state.year).sort((a, b) => b.valor - a.valor);
     renderRankingProdutoRows(t, rows, (r) => categoryShortLabelFor(level, r.produto), (r) => categoryLabelFor(level, r.produto));
   }
@@ -2483,6 +2664,19 @@
     return result;
   }
 
+  // Shared 3-way scope precedence for every "produto" orientation (Ranking,
+  // Variação, Tendências, Explorar): one município's own {produto,ano,valor}
+  // rows, the current state's aggregate (uf-filtered, summed via
+  // buildStateCompositionRows), or the whole-region precomputed series —
+  // in that order. One place for this rule means every view's scope picker
+  // behaves identically instead of four near-copies drifting apart.
+  function scopeCompositionRows(level, scope, uf) {
+    const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
+    if (scope) return index.byMunicipio.get(scope) || [];
+    if (uf) return buildStateCompositionRows(index, uf);
+    return level === "sh2" ? compositionSh2 : compositionSec;
+  }
+
   function showCompositionLoading() {
     const area = document.getElementById("composition-chart-area");
     let loadingDiv = document.getElementById("composition-loading");
@@ -2763,7 +2957,7 @@
       });
       return;
     }
-    const rows = computeChangeProdutoRows(level, index, state.changeScope, state.uf, state.yearA, state.yearB);
+    const rows = computeChangeProdutoRows(level, state.changeScope, state.uf, state.yearA, state.yearB);
     renderChangeRows(rows, (r) => categoryShortLabelFor(level, r.produto), (r) => categoryLabelFor(level, r.produto));
   }
 
@@ -2772,15 +2966,8 @@
   // via buildStateCompositionRows, or the whole-region precomputed series),
   // regrouped by category into one {produto,valueA,valueB,delta} row per
   // category instead of by year.
-  function computeChangeProdutoRows(level, index, scope, uf, yearA, yearB) {
-    let scopeRows;
-    if (scope) {
-      scopeRows = index.byMunicipio.get(scope) || [];
-    } else if (uf) {
-      scopeRows = buildStateCompositionRows(index, uf);
-    } else {
-      scopeRows = level === "sh2" ? compositionSh2 : compositionSec;
-    }
+  function computeChangeProdutoRows(level, scope, uf, yearA, yearB) {
+    const scopeRows = scopeCompositionRows(level, scope, uf);
     const byProduto = new Map(); // produto -> {valueA, valueB}
     for (const r of scopeRows) {
       if (r.ano !== yearA && r.ano !== yearB) continue;
@@ -2970,6 +3157,44 @@
     select.value = state.changeScope && munis.includes(state.changeScope) ? state.changeScope : "";
   }
 
+  // Same idiom, for Tendências' own produto-orientation scope picker.
+  function populateTrendsScopeSelect() {
+    const select = document.getElementById("trends-scope-select");
+    select.innerHTML = "";
+    const regionOpt = document.createElement("option");
+    regionOpt.value = "";
+    regionOpt.textContent = I18N[state.lang].composition_scope_region;
+    select.appendChild(regionOpt);
+    const munis = computeTrendMunicipalities(municipioMeta.size).filter((m) => compositionIndexSec.byMunicipio.has(m));
+    for (const municipio of munis) {
+      const opt = document.createElement("option");
+      opt.value = municipio;
+      opt.textContent = municipio;
+      select.appendChild(opt);
+    }
+    select.value = state.trendsScope && munis.includes(state.trendsScope) ? state.trendsScope : "";
+  }
+
+  // Same idiom, for Explorar's produto-orientation scope picker (its own
+  // hand-picked-categories multi-select is separate — see
+  // populateExploreProdutosSelect).
+  function populateExploreScopeSelect() {
+    const select = document.getElementById("explore-scope-select");
+    select.innerHTML = "";
+    const regionOpt = document.createElement("option");
+    regionOpt.value = "";
+    regionOpt.textContent = I18N[state.lang].composition_scope_region;
+    select.appendChild(regionOpt);
+    const munis = computeTrendMunicipalities(municipioMeta.size).filter((m) => compositionIndexSec.byMunicipio.has(m));
+    for (const municipio of munis) {
+      const opt = document.createElement("option");
+      opt.value = municipio;
+      opt.textContent = municipio;
+      select.appendChild(opt);
+    }
+    select.value = state.exploreScope && munis.includes(state.exploreScope) ? state.exploreScope : "";
+  }
+
   // Same idiom, for Explorar's municipality multi-select — uf-filtered via
   // computeTrendMunicipalities' own default. Selection (state.exploreMunis)
   // is applied via each option's `selected`, not select.value, since this is
@@ -2987,6 +3212,35 @@
     }
   }
 
+  // Same idiom, for Explorar's produto-orientation category multi-select —
+  // hand-picked, mirroring exploreMunis exactly (not an automatic top-N,
+  // unlike Tendências' cards). Self-heals to the current scope's top-5 by
+  // total value when nothing's picked yet or the picks don't exist in the
+  // newly chosen level's taxonomy (e.g. switching SEC -> SH2) — same
+  // self-healing rationale as the single-category populate*Select
+  // functions, just defaulting to several values instead of one.
+  function populateExploreProdutosSelect() {
+    const level = state.exploreProdutoLevel;
+    const select = document.getElementById("explore-produtos-select");
+    select.innerHTML = "";
+    const items = categoryOptionsFor(level);
+    if (!items) return;
+    const validValues = new Set(items.map((i) => i.value));
+    let selected = state.exploreProdutos.filter((p) => validValues.has(p));
+    if (!selected.length) {
+      const rows = scopeCompositionRows(level, state.exploreScope, state.uf);
+      selected = topKeysByTotal(categoryRowsToProdutoMap(rows), 5);
+      state.exploreProdutos = selected;
+    }
+    for (const { value, label } of items) {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = label;
+      opt.selected = selected.includes(value);
+      select.appendChild(opt);
+    }
+  }
+
   // Inverts a byProduto row list (already the other-direction read of the
   // same compositionIndex* data) into the municipio -> Map(year -> valor)
   // shape totalsByMunicipio itself uses — shared by Tendências' and
@@ -2998,6 +3252,34 @@
       byMunicipio.get(r.municipio).set(r.ano, r.valor);
     }
     return byMunicipio;
+  }
+
+  // Same idea, the other direction — a scope's own {produto,ano,valor}
+  // rows (from scopeCompositionRows) inverted into a produto -> Map(year ->
+  // valor) shape, for Tendências' and Explorar's own produto-orientation
+  // (comparing categories over time for one município/estado/região,
+  // instead of comparing municípios).
+  function categoryRowsToProdutoMap(rows) {
+    const byProduto = new Map();
+    for (const r of rows) {
+      if (!byProduto.has(r.produto)) byProduto.set(r.produto, new Map());
+      byProduto.get(r.produto).set(r.ano, r.valor);
+    }
+    return byProduto;
+  }
+
+  // Generic top-N-by-all-time-total over any key -> Map(year -> valor)
+  // source — computeTrendMunicipalities does the same thing but with
+  // município-specific uf-filtering baked in; this is the plain version for
+  // sources whose keys aren't municípios (e.g. product categories).
+  function topKeysByTotal(dataSource, topN) {
+    const totals = Array.from(dataSource.entries()).map(([key, years]) => {
+      let sum = 0;
+      for (const v of years.values()) sum += v;
+      return { key, total: sum };
+    });
+    totals.sort((a, b) => b.total - a.total);
+    return totals.slice(0, topN).map((d) => d.key);
   }
 
   // Returns a municipio -> Map(year -> valor) source matching Tendências'
@@ -3022,6 +3304,16 @@
     return categoryRowsToMunicipioMap(index.byProduto.get(state.trendsCategory) || []);
   }
 
+  // Tendências' axis swap: a produto -> Map(year -> valor) source, scoped
+  // to one município/estado/região (see scopeCompositionRows), for
+  // comparing product categories instead of municípios. Returns null only
+  // when SH2 is selected but not loaded yet.
+  function trendsProdutoDataSource() {
+    const level = state.trendsProdutoLevel;
+    if (level === "sh2" && !compositionIndexSh2) return null;
+    return categoryRowsToProdutoMap(scopeCompositionRows(level, state.trendsScope, state.uf));
+  }
+
   // Same idea, for Explorar's own independent category filter.
   function exploreDataSource() {
     if (state.exploreAggLevel !== "sec" && state.exploreAggLevel !== "sh2") return totalsByMunicipio;
@@ -3037,6 +3329,28 @@
   function renderTrends() {
     const t = I18N[state.lang];
     const grid = document.getElementById("trends-grid");
+
+    // Axis swap: instead of top-N municípios (for one product/category),
+    // show top-N product categories, for one município/estado/região.
+    if (state.trendsOrientation === "produto") {
+      const level = state.trendsProdutoLevel;
+      const dataSource = trendsProdutoDataSource();
+      if (!dataSource) {
+        grid.innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+        ensureSh2Loaded().then(() => {
+          if (state.view === "trends" && state.trendsOrientation === "produto" && state.trendsProdutoLevel === level) render();
+        });
+        return;
+      }
+      const produtos = topKeysByTotal(dataSource, state.topN);
+      grid.innerHTML = "";
+      const frag = document.createDocumentFragment();
+      for (const produto of produtos) {
+        frag.appendChild(buildTrendCard(produto, t, dataSource, (k) => categoryShortLabelFor(level, k), (k) => categoryLabelFor(level, k)));
+      }
+      grid.appendChild(frag);
+      return;
+    }
 
     const dataSource = trendsDataSource();
     if (!dataSource) {
@@ -3056,8 +3370,12 @@
     grid.appendChild(frag);
   }
 
-  function buildTrendCard(municipio, t, dataSource) {
-    const years = dataSource.get(municipio);
+  // labelFor/fullLabelFor default to the municipio-orientation shape (key
+  // is a municipio name, used as its own label) — Tendências'
+  // produto-orientation passes its own pair instead, same idiom as
+  // buildRankRow/buildChangeRowEl.
+  function buildTrendCard(key, t, dataSource, labelFor = (k) => k, fullLabelFor = labelFor) {
+    const years = dataSource.get(key);
     const series = [];
     for (let y = dictionary.year_inicio; y <= dictionary.year_final; y++) {
       series.push({ year: y, value: years.get(y) || 0 });
@@ -3072,14 +3390,14 @@
 
     const card = document.createElement("div");
     card.className = "trend-card";
-    card.dataset.municipio = municipio;
+    card.dataset.key = key;
 
     const header = document.createElement("div");
     header.className = "trend-card-header";
     const name = document.createElement("span");
     name.className = "trend-card-name";
-    name.textContent = municipio;
-    name.title = municipio;
+    name.textContent = labelFor(key);
+    name.title = fullLabelFor(key);
     const latest = document.createElement("span");
     latest.className = "trend-card-value";
     latest.textContent = fmtAbbrev(values[values.length - 1]);
@@ -3149,12 +3467,12 @@
   // Repositions each card's selected-year marker without rebuilding the
   // grid — called on every autoplay tick, so it needs to be cheap.
   function updateTrendsMarkers() {
-    const dataSource = trendsDataSource();
+    const dataSource = state.trendsOrientation === "produto" ? trendsProdutoDataSource() : trendsDataSource();
     if (!dataSource) return; // SH2 mid-load — renderTrends() owns showing the loading state
     const grid = document.getElementById("trends-grid");
     for (const card of grid.children) {
-      const municipio = card.dataset.municipio;
-      const years = dataSource.get(municipio);
+      const key = card.dataset.key;
+      const years = dataSource.get(key);
       if (!years) continue;
       const value = years.get(state.year);
       const marker = card.querySelector('[data-role="marker"]');
@@ -3188,8 +3506,14 @@
   // Returns null when the data source isn't ready (SH2 selected but not
   // loaded yet) — renderExplore() shows a loading state and re-invokes in
   // that case, rather than this function silently building an empty/wrong
-  // series against undefined data.
+  // series against undefined data. Dispatches on exploreOrientation; each
+  // series object carries its own resolved `label` (and `fullLabel` for the
+  // produto-orientation, since a category's short and full names differ) so
+  // every downstream consumer (legend, hover tooltip) reads a plain string
+  // instead of needing to know which orientation built the series.
   function buildExploreSeries() {
+    if (state.exploreOrientation === "produto") return buildExploreProdutoSeries();
+
     const dataSource = exploreDataSource();
     if (!dataSource) return null;
 
@@ -3208,7 +3532,36 @@
       const values = state.exploreIndex && !undefinedIndex
         ? raw.map((v) => (v / first) * 100)
         : raw;
-      return { municipio, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length], years, values, undefinedIndex };
+      return { key: municipio, label: municipio, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length], years, values, undefinedIndex };
+    });
+  }
+
+  // Explorar's axis swap: hand-picked product categories (for one
+  // município/estado/região — see scopeCompositionRows) plotted as
+  // independent lines, instead of hand-picked municípios.
+  function buildExploreProdutoSeries() {
+    const level = state.exploreProdutoLevel;
+    if (level === "sh2" && !compositionIndexSh2) return null;
+    const dataSource = categoryRowsToProdutoMap(scopeCompositionRows(level, state.exploreScope, state.uf));
+
+    const years = [];
+    for (let y = dictionary.year_inicio; y <= dictionary.year_final; y++) years.push(y);
+
+    return state.exploreProdutos.map((produto, i) => {
+      const yearMap = dataSource.get(produto);
+      const raw = years.map((y) => (yearMap ? yearMap.get(y) || 0 : 0));
+      const first = raw[0];
+      const undefinedIndex = state.exploreIndex && first === 0;
+      const values = state.exploreIndex && !undefinedIndex
+        ? raw.map((v) => (v / first) * 100)
+        : raw;
+      return {
+        key: produto,
+        label: categoryShortLabelFor(level, produto),
+        fullLabel: categoryLabelFor(level, produto),
+        color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+        years, values, undefinedIndex
+      };
     });
   }
 
@@ -3227,10 +3580,13 @@
         document.getElementById("explore-chart-area").appendChild(loadingDiv);
       }
       loadingDiv.textContent = t.label_loading;
-      const level = state.exploreAggLevel;
+      const orientation = state.exploreOrientation;
+      const level = orientation === "produto" ? state.exploreProdutoLevel : state.exploreAggLevel;
       ensureSh2Loaded().then(() => {
-        populateExploreCategorySelect();
-        if (state.view === "explore" && state.exploreAggLevel === level) render();
+        if (orientation === "municipio") populateExploreCategorySelect();
+        const stillSameContext = state.view === "explore" && state.exploreOrientation === orientation &&
+          (orientation === "produto" ? state.exploreProdutoLevel === level : state.exploreAggLevel === level);
+        if (stillSameContext) render();
       });
       return;
     }
@@ -3311,10 +3667,9 @@
       swatch.style.borderColor = s.color;
       const label = document.createElement("span");
       label.className = "label";
-      label.textContent = s.undefinedIndex
-        ? `${s.municipio} (${t.explore_no_base.replace("{year}", dictionary.year_inicio)})`
-        : s.municipio;
-      label.title = label.textContent;
+      const noBaseSuffix = s.undefinedIndex ? ` (${t.explore_no_base.replace("{year}", dictionary.year_inicio)})` : "";
+      label.textContent = s.label + noBaseSuffix;
+      label.title = (s.fullLabel || s.label) + noBaseSuffix;
       item.appendChild(swatch);
       item.appendChild(label);
       legend.appendChild(item);
@@ -3334,7 +3689,8 @@
     const tooltip = document.getElementById("explore-tooltip");
 
     area.addEventListener("pointermove", (e) => {
-      if (state.view !== "explore" || !state.exploreMunis.length) return;
+      const pickedCount = state.exploreOrientation === "produto" ? state.exploreProdutos.length : state.exploreMunis.length;
+      if (state.view !== "explore" || !pickedCount) return;
       const svg = document.getElementById("explore-svg");
       const rect = svg.getBoundingClientRect();
       const fracX = (e.clientX - rect.left) / rect.width;
@@ -3349,7 +3705,7 @@
       const series = buildExploreSeries();
       const idx = year - dictionary.year_inicio;
       const rowsHtml = series
-        .map((s) => ({ label: s.municipio, color: s.color, valor: s.values[idx] }))
+        .map((s) => ({ label: s.label, color: s.color, valor: s.values[idx] }))
         .sort((a, b) => b.valor - a.valor)
         .map((r) => `<div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:2px;background:${r.color};display:inline-block;flex:0 0 auto;"></span><span style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label}</span><span style="flex:0 0 auto;padding-left:8px;">${state.exploreIndex ? r.valor.toFixed(0) : fmtAbbrev(r.valor)}</span></div>`)
         .join("");

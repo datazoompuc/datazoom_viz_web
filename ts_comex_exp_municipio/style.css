@@ -155,6 +155,14 @@ html, body {
   text-overflow: ellipsis;
 }
 
+/* Composição's "estado" orientation disables the global state filter (it
+   doesn't apply there — see syncUfFilterAvailability) rather than leaving
+   it silently unresponsive. */
+.sidebar-field:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .prodrank-full-label {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.75);
@@ -176,15 +184,22 @@ html, body {
 .change-year-field { flex: 1 1 0; min-width: 0; }
 .change-year-field label { font-size: 0.85rem; }
 
-#explore-munis-select {
+/* Shared by every hand-picked multi-select in Explorar (municípios and,
+   since the axis swap, categories too) — min-width: 0 caps it to the
+   sidebar's width the same way .sidebar-field does for single-line
+   controls; a multi-select can't also use that class since its
+   white-space: nowrap/ellipsis rules only make sense for a single closed
+   value, not a scrollable option list. */
+.sidebar-multiselect {
   width: 100%;
+  min-width: 0;
   border-radius: 4px;
   border: 1px solid #ced4da;
   font-size: 0.9rem;
   background: #fff;
   color: var(--ink);
 }
-#explore-munis-select option { padding: 3px 6px; }
+.sidebar-multiselect option { padding: 3px 6px; }
 
 .explore-hint {
   font-size: 0.75rem;

@@ -104,6 +104,7 @@
       <select id="uf-filter-select" class="sidebar-field">
         <option value=""></option>
       </select>
+      <p class="explore-hint hidden" id="uf-filter-disabled-hint"></p>
     </div>
 
     <div class="var_selec_group hidden" id="composition-scope-group">
@@ -180,36 +181,81 @@
     </div>
 
     <div class="var_selec_group hidden" id="trends-agg-group">
-      <label id="label_trends_agg_level" for="trends-agg-level-select"></label>
-      <select id="trends-agg-level-select" class="sidebar-field">
-        <option value="all"></option>
-        <option value="sec"></option>
-        <option value="sh2"></option>
-      </select>
+      <p class="vars" id="label_trends_orientation"></p>
+      <div class="view-toggle" id="trends-orientation-toggle">
+        <button class="view-btn active" id="trends-orientation-municipio" data-orientation="municipio"></button>
+        <button class="view-btn" id="trends-orientation-produto" data-orientation="produto"></button>
+      </div>
       <div class="spacer"></div>
-      <div id="trends-category-group" class="hidden">
-        <label id="label_trends_category" for="trends-category-select"></label>
-        <select id="trends-category-select" class="sidebar-field"></select>
+
+      <div id="trends-by-municipio-group">
+        <label id="label_trends_agg_level" for="trends-agg-level-select"></label>
+        <select id="trends-agg-level-select" class="sidebar-field">
+          <option value="all"></option>
+          <option value="sec"></option>
+          <option value="sh2"></option>
+        </select>
+        <div class="spacer"></div>
+        <div id="trends-category-group" class="hidden">
+          <label id="label_trends_category" for="trends-category-select"></label>
+          <select id="trends-category-select" class="sidebar-field"></select>
+        </div>
+      </div>
+
+      <div id="trends-by-produto-group" class="hidden">
+        <label id="label_trends_produto_level" for="trends-produto-level-select"></label>
+        <select id="trends-produto-level-select" class="sidebar-field">
+          <option value="sec"></option>
+          <option value="sh2"></option>
+        </select>
+        <div class="spacer"></div>
+        <label id="label_trends_scope" for="trends-scope-select"></label>
+        <select id="trends-scope-select" class="sidebar-field"></select>
       </div>
     </div>
 
     <div class="var_selec_group hidden" id="explore-group">
-      <label id="label_explore_agg_level" for="explore-agg-level-select"></label>
-      <select id="explore-agg-level-select" class="sidebar-field">
-        <option value="all"></option>
-        <option value="sec"></option>
-        <option value="sh2"></option>
-      </select>
+      <p class="vars" id="label_explore_orientation"></p>
+      <div class="view-toggle" id="explore-orientation-toggle">
+        <button class="view-btn active" id="explore-orientation-municipio" data-orientation="municipio"></button>
+        <button class="view-btn" id="explore-orientation-produto" data-orientation="produto"></button>
+      </div>
       <div class="spacer"></div>
-      <div id="explore-category-group" class="hidden">
-        <label id="label_explore_category" for="explore-category-select"></label>
-        <select id="explore-category-select" class="sidebar-field"></select>
+
+      <div id="explore-by-municipio-group">
+        <label id="label_explore_agg_level" for="explore-agg-level-select"></label>
+        <select id="explore-agg-level-select" class="sidebar-field">
+          <option value="all"></option>
+          <option value="sec"></option>
+          <option value="sh2"></option>
+        </select>
         <div class="spacer"></div>
+        <div id="explore-category-group" class="hidden">
+          <label id="label_explore_category" for="explore-category-select"></label>
+          <select id="explore-category-select" class="sidebar-field"></select>
+          <div class="spacer"></div>
+        </div>
+
+        <label id="label_explore_munis" for="explore-munis-select"></label>
+        <select id="explore-munis-select" class="sidebar-multiselect" multiple size="10"></select>
+        <p class="explore-hint" id="explore-hint"></p>
       </div>
 
-      <label id="label_explore_munis" for="explore-munis-select"></label>
-      <select id="explore-munis-select" multiple size="10"></select>
-      <p class="explore-hint" id="explore-hint"></p>
+      <div id="explore-by-produto-group" class="hidden">
+        <label id="label_explore_produto_level" for="explore-produto-level-select"></label>
+        <select id="explore-produto-level-select" class="sidebar-field">
+          <option value="sec"></option>
+          <option value="sh2"></option>
+        </select>
+        <div class="spacer"></div>
+        <label id="label_explore_scope" for="explore-scope-select"></label>
+        <select id="explore-scope-select" class="sidebar-field"></select>
+        <div class="spacer"></div>
+        <label id="label_explore_produtos" for="explore-produtos-select"></label>
+        <select id="explore-produtos-select" class="sidebar-multiselect" multiple size="10"></select>
+        <p class="explore-hint" id="explore-produtos-hint"></p>
+      </div>
+
       <div class="spacer"></div>
       <label class="switch-row">
         <input type="checkbox" id="explore-log">
