@@ -68,7 +68,6 @@
       title_explore_produtos_scope: "Comparar categorias — {scope}",
       subtitle_explore_produtos: "Valor exportado (US$) ao longo do tempo, categorias selecionadas",
       label_explore_produtos: "Categorias (Ctrl/Cmd+clique para várias)",
-      uf_filter_disabled_hint: "Não se aplica: Estado é o eixo desta visualização",
       label_log_scale: "Escala logarítmica",
       label_index_first: "Indexado ao ano inicial (=100)",
       explore_no_base: "sem exportação em {year}",
@@ -80,6 +79,7 @@
       composition_orientation_categoria: "Categoria",
       composition_orientation_estado: "Estado",
       title_composition_estado: "Composição por estado — {categoria}",
+      title_composition_estado_uf: "Composição por estado — {categoria} ({uf})",
       title_composition_estado_base: "Composição por estado",
       subtitle_composition_estado: "Valor exportado (US$) por estado, empilhado por ano — passe o mouse para ver o detalhamento",
       label_agg_level: "Nível de agregação",
@@ -188,7 +188,6 @@
       title_explore_produtos_scope: "Compare categories — {scope}",
       subtitle_explore_produtos: "Export value (US$) over time, selected categories",
       label_explore_produtos: "Categories (Ctrl/Cmd+click for multiple)",
-      uf_filter_disabled_hint: "Doesn't apply: State is this view's own axis",
       label_log_scale: "Log scale",
       label_index_first: "Indexed to first year (=100)",
       explore_no_base: "no exports in {year}",
@@ -200,6 +199,7 @@
       composition_orientation_categoria: "Category",
       composition_orientation_estado: "State",
       title_composition_estado: "Composition by state — {categoria}",
+      title_composition_estado_uf: "Composition by state — {categoria} ({uf})",
       title_composition_estado_base: "Composition by state",
       subtitle_composition_estado: "Export value (US$) by state, stacked per year — hover to see the breakdown",
       label_agg_level: "Aggregation level",
@@ -323,9 +323,10 @@
     // geographic scope down by product category; "estado" instead breaks
     // one category down by the Legal Amazon's 9 states — deliberately no
     // município tier here (9 states is a readable stacked area; ~450
-    // municipalities would not be), and it always spans the whole region
-    // regardless of the global state.uf filter, since state IS the axis
-    // being broken down.
+    // municipalities would not be). The global state.uf filter still
+    // applies in "estado" mode, though: it narrows the state axis down to
+    // one value (that state's own single trend), the same way
+    // compositionScope narrows "categoria" mode down to one município.
     compositionOrientation: "categoria", // "categoria" | "estado"
     compositionProduto: null, // selected SEC or SH2 category, used when compositionOrientation is "estado"
     rankingAggLevel: "all", // "all" | "sec" | "sh2" | "sh4" — what Ranking is filtered by
@@ -1842,23 +1843,6 @@
     render();
   }
 
-  // The global state filter has no effect while Composição's "estado"
-  // orientation is active (renderCompositionByEstado never reads state.uf
-  // — state IS the axis being broken down there, so filtering to one state
-  // would collapse the whole chart to a single band). Left silently
-  // unresponsive, that reads as broken rather than intentional — this
-  // disables the control and shows a one-line explanation instead,
-  // called from render() so it stays in sync with both the current view
-  // and the current orientation.
-  function syncUfFilterAvailability() {
-    const disabled = state.view === "composition" && state.compositionOrientation === "estado";
-    const select = document.getElementById("uf-filter-select");
-    const hint = document.getElementById("uf-filter-disabled-hint");
-    select.disabled = disabled;
-    hint.textContent = disabled ? I18N[state.lang].uf_filter_disabled_hint : "";
-    hint.classList.toggle("hidden", !disabled);
-  }
-
   // Variação's own axis-swap toggle — see renderChangeByProduto for the
   // actual rendering. Same idiom as setRankingOrientation/setCompositionOrientation.
   function setChangeOrientation(orientation) {
@@ -2125,7 +2109,9 @@
         ? (rankingScopeLabel ? t.title_ranking_produtos_scope.replace("{scope}", rankingScopeLabel) : t.title_ranking_produtos)
         : (rankingFilterLabel ? t.title_ranking_product.replace("{produto}", rankingFilterLabel) : t.title_ranking),
       composition: state.compositionOrientation === "estado"
-        ? (compositionProdutoLabel ? t.title_composition_estado.replace("{categoria}", compositionProdutoLabel) : t.title_composition_estado_base)
+        ? (compositionProdutoLabel
+          ? (state.uf ? t.title_composition_estado_uf.replace("{categoria}", compositionProdutoLabel).replace("{uf}", state.uf) : t.title_composition_estado.replace("{categoria}", compositionProdutoLabel))
+          : t.title_composition_estado_base)
         : (state.compositionScope
           ? t.title_composition_muni.replace("{municipio}", state.compositionScope)
           : (state.uf ? t.title_composition_uf.replace("{uf}", state.uf) : t.title_composition)),
@@ -2152,8 +2138,6 @@
     };
     document.getElementById("plot-title").textContent = titles[state.view];
     document.getElementById("plot-subtitle").textContent = subtitles[state.view];
-
-    syncUfFilterAvailability();
 
     const slider = document.getElementById("year-slider");
     slider.value = state.year;
@@ -2606,9 +2590,11 @@
   // grouping key, and categoryLabelFor's existing graceful-degradation
   // fallback (dictionary miss → raw value) then displays each UF code as
   // itself, since it won't match any SEC/SH2 dictionary entry. Deliberately
-  // município-free (see state.compositionOrientation's comment) and always
-  // spans the whole region — state.uf/compositionScope don't apply here,
-  // since state IS the axis being broken down.
+  // município-free (see state.compositionOrientation's comment) — but the
+  // global state.uf filter still applies, narrowing the state axis down to
+  // one value (that state's own single trend) exactly the way
+  // compositionScope narrows the "categoria" orientation down to one
+  // município's own trend.
   function renderCompositionByEstado() {
     const level = state.compositionAgg;
     const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
@@ -2616,19 +2602,23 @@
       populateCompositionProdutoSelect();
     }
     const rows = (state.compositionProduto && index.byProduto.get(state.compositionProduto)) || [];
-    activeCompositionSeries = buildCompositionSeries(buildUfRows(rows), dictionary);
+    activeCompositionSeries = buildCompositionSeries(buildUfRows(rows, state.uf), dictionary);
     renderStackedComposition(activeCompositionSeries, { svg: "composition-svg", guide: "comp-guide", legend: "composition-legend" });
   }
 
   // Sums one category's per-municipio rows (already {municipio,ano,valor})
   // into per-state+year totals, in the {produto,ano,valor} shape
   // buildCompositionSeries expects — "produto" holds a UF code here instead
-  // of a category name (see renderCompositionByEstado).
-  function buildUfRows(rows) {
+  // of a category name (see renderCompositionByEstado). uf, when set,
+  // narrows this down to that one state's own rows — buildCompositionSeries
+  // still works unchanged on a single-key input, rendering as one band
+  // (that state's own trend) instead of a 9-state stack.
+  function buildUfRows(rows, uf) {
     const sums = new Map(); // "uf|ano" -> valor
     for (const r of rows) {
       const meta = municipioMeta.get(r.municipio);
       if (!meta) continue;
+      if (uf && meta.uf !== uf) continue;
       const key = meta.uf + "|" + r.ano;
       sums.set(key, (sums.get(key) || 0) + r.valor);
     }

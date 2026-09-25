@@ -155,14 +155,6 @@ html, body {
   text-overflow: ellipsis;
 }
 
-/* Composição's "estado" orientation disables the global state filter (it
-   doesn't apply there — see syncUfFilterAvailability) rather than leaving
-   it silently unresponsive. */
-.sidebar-field:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
 .prodrank-full-label {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.75);
