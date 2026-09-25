@@ -76,7 +76,6 @@
       label_composition_scope: "Escopo",
       composition_scope_region: "Todos os municípios",
       label_composition_orientation: "Composição por",
-      composition_orientation_categoria: "Categoria",
       composition_orientation_estado: "Estado",
       title_composition_estado: "Composição por estado — {categoria}",
       title_composition_estado_uf: "Composição por estado — {categoria} ({uf})",
@@ -196,7 +195,6 @@
       label_composition_scope: "Scope",
       composition_scope_region: "All municipalities",
       label_composition_orientation: "Breakdown by",
-      composition_orientation_categoria: "Category",
       composition_orientation_estado: "State",
       title_composition_estado: "Composition by state — {categoria}",
       title_composition_estado_uf: "Composition by state — {categoria} ({uf})",
@@ -319,15 +317,18 @@
     exploreScope: null, // municipio name, or null = state/region aggregate, used when exploreOrientation is "produto"
     compositionScope: null, // null = whole-region composition; a municipio name = that place's own composition
     compositionAgg: "sec", // "sec" | "sh2" — which product-category taxonomy the Composição chart uses
-    // Composição's own axis swap: "categoria" (default, above) breaks one
-    // geographic scope down by product category; "estado" instead breaks
-    // one category down by the Legal Amazon's 9 states — deliberately no
+    // Composição's own axis swap: "estado" (default, above) breaks one
+    // category down by the Legal Amazon's 9 states — deliberately no
     // município tier here (9 states is a readable stacked area; ~450
-    // municipalities would not be). The global state.uf filter still
-    // applies in "estado" mode, though: it narrows the state axis down to
-    // one value (that state's own single trend), the same way
-    // compositionScope narrows "categoria" mode down to one município.
-    compositionOrientation: "categoria", // "categoria" | "estado"
+    // municipalities would not be); "produto" instead breaks one
+    // geographic scope down by product category. Same "Produtos" wording
+    // and button position (second) as every other view's own axis swap,
+    // even though what it pairs against ("Estado", not "Município") is
+    // necessarily different here. The global state.uf filter still applies
+    // in "estado" mode: it narrows the state axis down to one value (that
+    // state's own single trend), the same way compositionScope narrows
+    // "produto" mode down to one município.
+    compositionOrientation: "estado", // "estado" | "produto"
     compositionProduto: null, // selected SEC or SH2 category, used when compositionOrientation is "estado"
     rankingAggLevel: "all", // "all" | "sec" | "sh2" | "sh4" — what Ranking is filtered by
     rankingCategory: null, // selected SEC or SH2 category name, used when rankingAggLevel is "sec"/"sh2"
@@ -1296,7 +1297,7 @@
     state.exploreIndex = qIndex === "1";
     state.compositionScope = qCompScope && compositionIndexSec.byMunicipio.has(qCompScope) ? qCompScope : null;
     state.compositionAgg = qCompAgg === "sh2" ? "sh2" : "sec";
-    state.compositionOrientation = qCompOrientation === "estado" ? "estado" : "categoria";
+    state.compositionOrientation = qCompOrientation === "produto" ? "produto" : "estado";
     // Validated once its aggregation's data is loaded, same provisional
     // pattern as rankingCategory/trendsCategory/exploreCategory.
     state.compositionProduto = qCompProduto || null;
@@ -1614,13 +1615,13 @@
     });
 
     // ---- Composição's axis swap: break one category down by state
-    // instead of one geographic scope down by category. ----
+    // (default) instead of one geographic scope down by category. ----
 
-    document.getElementById("composition-orientation-categoria").addEventListener("click", () => setCompositionOrientation("categoria"));
+    document.getElementById("composition-orientation-produto").addEventListener("click", () => setCompositionOrientation("produto"));
     document.getElementById("composition-orientation-estado").addEventListener("click", () => setCompositionOrientation("estado"));
-    document.getElementById("composition-orientation-categoria").classList.toggle("active", state.compositionOrientation === "categoria");
+    document.getElementById("composition-orientation-produto").classList.toggle("active", state.compositionOrientation === "produto");
     document.getElementById("composition-orientation-estado").classList.toggle("active", state.compositionOrientation === "estado");
-    document.getElementById("composition-by-categoria-group").classList.toggle("hidden", state.compositionOrientation !== "categoria");
+    document.getElementById("composition-by-produto-group").classList.toggle("hidden", state.compositionOrientation !== "produto");
     document.getElementById("composition-by-estado-group").classList.toggle("hidden", state.compositionOrientation !== "estado");
 
     populateCompositionProdutoSelect();
@@ -1835,9 +1836,9 @@
   // the actual rendering. Same idiom as setRankingOrientation.
   function setCompositionOrientation(orientation) {
     state.compositionOrientation = orientation;
-    document.getElementById("composition-orientation-categoria").classList.toggle("active", orientation === "categoria");
+    document.getElementById("composition-orientation-produto").classList.toggle("active", orientation === "produto");
     document.getElementById("composition-orientation-estado").classList.toggle("active", orientation === "estado");
-    document.getElementById("composition-by-categoria-group").classList.toggle("hidden", orientation !== "categoria");
+    document.getElementById("composition-by-produto-group").classList.toggle("hidden", orientation !== "produto");
     document.getElementById("composition-by-estado-group").classList.toggle("hidden", orientation !== "estado");
     updateUrl();
     render();
@@ -2019,7 +2020,7 @@
     document.getElementById("label_composition_scope").textContent = t.label_composition_scope;
     document.getElementById("label_composition_agg").textContent = t.label_agg_level;
     document.getElementById("label_composition_orientation").textContent = t.label_composition_orientation;
-    document.getElementById("composition-orientation-categoria").textContent = t.composition_orientation_categoria;
+    document.getElementById("composition-orientation-produto").textContent = t.ranking_orientation_produto;
     document.getElementById("composition-orientation-estado").textContent = t.composition_orientation_estado;
     document.getElementById("label_composition_produto").textContent = t.label_category;
     document.getElementById("label_ranking_agg_level").textContent = t.label_agg_level;
