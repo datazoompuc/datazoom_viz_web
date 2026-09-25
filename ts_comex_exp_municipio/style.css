@@ -272,23 +272,20 @@ html, body {
 }
 .spark-tooltip strong { font-weight: 700; }
 
-/* Label + play/counter share a header row above the chart, so the slider
-   itself (year-slider-full, below) can span the exact same full width as
-   the sparkline above it instead of being squeezed between them — the two
-   read as one continuous scale instead of two misaligned ones. */
-.slider-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.slider-header label { margin-bottom: 0; }
-.slider-header-controls { display: flex; align-items: center; gap: 8px; }
-
 /* margin: 0 overrides the browser default (2px left/right on
    input[type=range] in Chrome/Safari) that would otherwise throw the
    slider's track a couple pixels out of alignment with the sparkline
    above it, despite both spanning the same 100% width. */
 .year-slider-full { display: block; width: 100%; margin: 2px 0 0; accent-color: #2c5f64; }
 
+/* Play button + "Ano 2025" caption sit below the chart/slider stack (not
+   above it — nothing here needs to compete with the sparkline/slider for
+   the same full width the way the header row used to). */
+.slider-footer { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.year-caption { display: flex; align-items: baseline; gap: 5px; }
+.year-caption label { margin-bottom: 0; }
+
 .year-value {
-  min-width: 3.5em;
-  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
