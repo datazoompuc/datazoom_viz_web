@@ -719,12 +719,6 @@ html, body {
 .trend-spark-line { fill: none; stroke: var(--bar); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .trend-spark-marker { fill: var(--bar); stroke: #fff; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 
-.trend-card-footer {
-  font-size: 0.76rem;
-  color: var(--muted);
-  margin-top: 4px;
-}
-
 /* ---- Map (Leaflet, lazy-loaded) view ---- */
 
 .map-hint {

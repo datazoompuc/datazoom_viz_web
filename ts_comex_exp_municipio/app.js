@@ -55,7 +55,6 @@
       title_trends_produtos: "Tendências por categoria",
       title_trends_produtos_scope: "Tendências por categoria — {scope}",
       subtitle_trends_produtos: "Top categorias por valor total exportado, 1997–2025",
-      label_since_prefix: "Desde ",
       view_explore: "Explorar",
       title_explore: "Comparar municípios",
       title_explore_category: "Comparar municípios — {categoria}",
@@ -174,7 +173,6 @@
       title_trends_produtos: "Trends by category",
       title_trends_produtos_scope: "Trends by category — {scope}",
       subtitle_trends_produtos: "Top categories by total export value, 1997–2025",
-      label_since_prefix: "Since ",
       view_explore: "Explore",
       title_explore: "Compare municipalities",
       title_explore_category: "Compare municipalities — {categoria}",
@@ -3337,7 +3335,7 @@
       grid.innerHTML = "";
       const frag = document.createDocumentFragment();
       for (const produto of produtos) {
-        frag.appendChild(buildTrendCard(produto, t, dataSource, (k) => categoryShortLabelFor(level, k), (k) => categoryLabelFor(level, k)));
+        frag.appendChild(buildTrendCard(produto, dataSource, (k) => categoryShortLabelFor(level, k), (k) => categoryLabelFor(level, k)));
       }
       grid.appendChild(frag);
       return;
@@ -3357,7 +3355,7 @@
     const munis = computeTrendMunicipalities(state.topN, dataSource);
     grid.innerHTML = "";
     const frag = document.createDocumentFragment();
-    for (const municipio of munis) frag.appendChild(buildTrendCard(municipio, t, dataSource));
+    for (const municipio of munis) frag.appendChild(buildTrendCard(municipio, dataSource));
     grid.appendChild(frag);
   }
 
@@ -3365,7 +3363,7 @@
   // is a municipio name, used as its own label) — Tendências'
   // produto-orientation passes its own pair instead, same idiom as
   // buildRankRow/buildChangeRowEl.
-  function buildTrendCard(key, t, dataSource, labelFor = (k) => k, fullLabelFor = labelFor) {
+  function buildTrendCard(key, dataSource, labelFor = (k) => k, fullLabelFor = labelFor) {
     const years = dataSource.get(key);
     const series = [];
     for (let y = dictionary.year_inicio; y <= dictionary.year_final; y++) {
@@ -3391,7 +3389,8 @@
     name.title = fullLabelFor(key);
     const latest = document.createElement("span");
     latest.className = "trend-card-value";
-    latest.textContent = fmtAbbrev(values[values.length - 1]);
+    latest.dataset.role = "value";
+    latest.textContent = fmtAbbrev(years.get(state.year) || 0);
     header.appendChild(name);
     header.appendChild(latest);
     card.appendChild(header);
@@ -3421,26 +3420,6 @@
 
     card.appendChild(svg);
 
-    const footer = document.createElement("div");
-    footer.className = "trend-card-footer";
-    const first = values[0];
-    // A near-zero 1997 base (common for municipalities that only started
-    // exporting significant volumes later) makes the raw percentage
-    // explode into six figures — technically correct, but not a useful
-    // number to scan. Capped display; the sparkline shape already tells
-    // the real story for these cases.
-    const pctChange = first !== 0 ? ((values[values.length - 1] - first) / Math.abs(first)) * 100 : null;
-    let pctLabel = "—";
-    if (pctChange !== null) {
-      // A decline is bounded at -100% (export value can't go below 0), so
-      // anything past the cap can only be on the growth side.
-      pctLabel = pctChange > 999
-        ? ">999%"
-        : (pctChange >= 0 ? "+" : "") + Math.round(pctChange) + "%";
-    }
-    footer.textContent = t.label_since_prefix + dictionary.year_inicio + ": " + pctLabel;
-    card.appendChild(footer);
-
     positionTrendMarker(card, series, xFor, yFor);
     return card;
   }
@@ -3465,6 +3444,8 @@
       const key = card.dataset.key;
       const years = dataSource.get(key);
       if (!years) continue;
+      const valueEl = card.querySelector('[data-role="value"]');
+      if (valueEl) valueEl.textContent = fmtAbbrev(years.get(state.year) || 0);
       const value = years.get(state.year);
       const marker = card.querySelector('[data-role="marker"]');
       if (!marker) continue;
