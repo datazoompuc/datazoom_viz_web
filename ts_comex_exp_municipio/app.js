@@ -42,6 +42,7 @@
       subtitle_change_produtos: "Categorias de produto ordenadas pela variação no valor exportado",
       label_uf_filter: "Estado",
       uf_all: "Todos os estados",
+      uf_all_disabled_hint: "Indisponível em Variação: escolha um estado",
       title_composition_uf: "Composição das exportações — {uf}",
       label_year_a: "Ano A",
       label_year_b: "Ano B",
@@ -161,6 +162,7 @@
       subtitle_change_produtos: "Product categories ranked by change in export value",
       label_uf_filter: "State",
       uf_all: "All states",
+      uf_all_disabled_hint: "Not available in Change: pick a state",
       title_composition_uf: "Export composition — {uf}",
       label_year_a: "Year A",
       label_year_b: "Year B",
@@ -2003,7 +2005,18 @@
     document.getElementById("ranking-axis-label").textContent = t.ranking_axis_label;
     document.getElementById("change-axis-label").textContent = t.change_axis_label;
     document.getElementById("label_uf_filter").textContent = t.label_uf_filter;
-    document.getElementById("uf-filter-select").options[0].textContent = t.uf_all;
+    // "Todos os estados" isn't a valid choice while on Variação — its
+    // dumbbell chart can't render all 446 municipalities, so it always
+    // forces a concrete state back (see setView/renderChange). Disabling
+    // just this one option (rather than the whole select, which stays
+    // useful for picking a *different* state) shows why, instead of
+    // silently snapping the selection back to some other state — which
+    // otherwise reads as "I can't select this" (a real bug report this
+    // was written to fix), not as an unavailable-in-this-view choice.
+    const ufAllOption = document.getElementById("uf-filter-select").options[0];
+    ufAllOption.textContent = t.uf_all;
+    ufAllOption.disabled = state.view === "change";
+    ufAllOption.title = state.view === "change" ? t.uf_all_disabled_hint : "";
     document.getElementById("label_year_a").textContent = t.label_year_a;
     document.getElementById("label_year_b").textContent = t.label_year_b;
     document.getElementById("label_change_orientation").textContent = t.label_change_orientation;
