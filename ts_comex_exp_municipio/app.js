@@ -61,6 +61,12 @@
       subtitle_composition_muni: "Categorias de produto exportadas, 1997–2025 — passe o mouse para ver o detalhamento",
       label_composition_scope: "Escopo",
       composition_scope_region: "Todos os municípios",
+      label_composition_orientation: "Composição por",
+      composition_orientation_categoria: "Categoria",
+      composition_orientation_estado: "Estado",
+      title_composition_estado: "Composição por estado — {categoria}",
+      title_composition_estado_base: "Composição por estado",
+      subtitle_composition_estado: "Valor exportado (US$) por estado, empilhado por ano — passe o mouse para ver o detalhamento",
       label_agg_level: "Nível de agregação",
       agg_level_sec: "Seção (SEC)",
       agg_level_sh2: "Capítulo (SH2)",
@@ -160,6 +166,12 @@
       subtitle_composition_muni: "Product categories exported, 1997–2025 — hover to see the breakdown",
       label_composition_scope: "Scope",
       composition_scope_region: "All municipalities",
+      label_composition_orientation: "Breakdown by",
+      composition_orientation_categoria: "Category",
+      composition_orientation_estado: "State",
+      title_composition_estado: "Composition by state — {categoria}",
+      title_composition_estado_base: "Composition by state",
+      subtitle_composition_estado: "Export value (US$) by state, stacked per year — hover to see the breakdown",
       label_agg_level: "Aggregation level",
       agg_level_sec: "Section (SEC)",
       agg_level_sh2: "Chapter (SH2)",
@@ -256,6 +268,15 @@
     exploreCategory: null, // selected SEC or SH2 category name, used when exploreAggLevel is "sec"/"sh2"
     compositionScope: null, // null = whole-region composition; a municipio name = that place's own composition
     compositionAgg: "sec", // "sec" | "sh2" — which product-category taxonomy the Composição chart uses
+    // Composição's own axis swap: "categoria" (default, above) breaks one
+    // geographic scope down by product category; "estado" instead breaks
+    // one category down by the Legal Amazon's 9 states — deliberately no
+    // município tier here (9 states is a readable stacked area; ~450
+    // municipalities would not be), and it always spans the whole region
+    // regardless of the global state.uf filter, since state IS the axis
+    // being broken down.
+    compositionOrientation: "categoria", // "categoria" | "estado"
+    compositionProduto: null, // selected SEC or SH2 category, used when compositionOrientation is "estado"
     rankingAggLevel: "all", // "all" | "sec" | "sh2" | "sh4" — what Ranking is filtered by
     rankingCategory: null, // selected SEC or SH2 category name, used when rankingAggLevel is "sec"/"sh2"
     rankingProduct: null, // selected SH4 code, used when rankingAggLevel is "sh4"
@@ -586,6 +607,16 @@
     return null;
   }
 
+  // Same idea for Composição's "estado" orientation — null while nothing's
+  // selected yet (e.g. still loading SH2), so the title falls back to the
+  // generic title_composition_estado_base instead of interpolating "null".
+  function currentCompositionProdutoLabel() {
+    if (state.compositionOrientation === "estado" && state.compositionProduto) {
+      return categoryShortLabelFor(state.compositionAgg, state.compositionProduto);
+    }
+    return null;
+  }
+
   // Curated dropdown works before the 1MB dataset loads (labels come from
   // PRODRANK_CURATED_LABELS) — safe to call at init and again after load
   // (rankingProductShortLabel switches to the live official data once
@@ -756,6 +787,28 @@
       state.exploreCategory = items.length ? items[0].value : null;
     }
     select.value = state.exploreCategory || "";
+  }
+
+  // Same idea, for Composição's own "estado" orientation — the one
+  // category being broken down by state (see renderCompositionByEstado).
+  // Level is state.compositionAgg, the same SEC/SH2 toggle the "categoria"
+  // orientation already uses, not a separate tier of its own.
+  function populateCompositionProdutoSelect() {
+    const level = state.compositionAgg;
+    const select = document.getElementById("composition-produto-select");
+    select.innerHTML = "";
+    const items = categoryOptionsFor(level);
+    if (!items) return;
+    for (const { value, label } of items) {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = label;
+      select.appendChild(opt);
+    }
+    if (!state.compositionProduto || !items.some((i) => i.value === state.compositionProduto)) {
+      state.compositionProduto = items.length ? items[0].value : null;
+    }
+    select.value = state.compositionProduto || "";
   }
 
   // Same idea as syncTrendsAggControls, for Explorar's own tier.
@@ -1088,6 +1141,8 @@
     const qIndex = params.get("index");
     const qCompScope = params.get("compscope");
     const qCompAgg = params.get("compagg");
+    const qCompOrientation = params.get("comporientation");
+    const qCompProduto = params.get("compproduto");
     const qRankAggLevel = params.get("rankagglevel");
     const qRankCategory = params.get("rankcategory");
     const qRankProduct = params.get("rankproduct");
@@ -1122,6 +1177,10 @@
     state.exploreIndex = qIndex === "1";
     state.compositionScope = qCompScope && compositionIndexSec.byMunicipio.has(qCompScope) ? qCompScope : null;
     state.compositionAgg = qCompAgg === "sh2" ? "sh2" : "sec";
+    state.compositionOrientation = qCompOrientation === "estado" ? "estado" : "categoria";
+    // Validated once its aggregation's data is loaded, same provisional
+    // pattern as rankingCategory/trendsCategory/exploreCategory.
+    state.compositionProduto = qCompProduto || null;
     state.rankingAggLevel = ["all", "sec", "sh2", "sh4"].includes(qRankAggLevel) ? qRankAggLevel : "all";
     // Category/product selections are validated once their aggregation's
     // data is loaded (SH2: ensureSh2Loaded; SH4: ensureProductRankingLoaded)
@@ -1152,6 +1211,8 @@
     params.set("index", state.exploreIndex ? "1" : "0");
     params.set("compscope", state.compositionScope || "");
     params.set("compagg", state.compositionAgg);
+    params.set("comporientation", state.compositionOrientation);
+    params.set("compproduto", state.compositionProduto || "");
     params.set("rankagglevel", state.rankingAggLevel);
     params.set("rankcategory", state.rankingCategory || "");
     params.set("rankproduct", state.rankingProduct || "");
@@ -1350,7 +1411,25 @@
     compositionAggSelect.addEventListener("change", (e) => {
       state.compositionAgg = e.target.value;
       updateUrl();
+      populateCompositionProdutoSelect(); // no-ops if SH2 isn't loaded yet — renderCompositionByEstado() owns that fetch + the loading state
       render(); // title/legend depend on the aggregation too, not just the chart
+    });
+
+    // ---- Composição's axis swap: break one category down by state
+    // instead of one geographic scope down by category. ----
+
+    document.getElementById("composition-orientation-categoria").addEventListener("click", () => setCompositionOrientation("categoria"));
+    document.getElementById("composition-orientation-estado").addEventListener("click", () => setCompositionOrientation("estado"));
+    document.getElementById("composition-orientation-categoria").classList.toggle("active", state.compositionOrientation === "categoria");
+    document.getElementById("composition-orientation-estado").classList.toggle("active", state.compositionOrientation === "estado");
+    document.getElementById("composition-by-categoria-group").classList.toggle("hidden", state.compositionOrientation !== "categoria");
+    document.getElementById("composition-by-estado-group").classList.toggle("hidden", state.compositionOrientation !== "estado");
+
+    populateCompositionProdutoSelect();
+    document.getElementById("composition-produto-select").addEventListener("change", (e) => {
+      state.compositionProduto = e.target.value || null;
+      updateUrl();
+      render();
     });
 
     populateExploreMunisSelect();
@@ -1491,6 +1570,18 @@
     render();
   }
 
+  // Composição's own axis-swap toggle — see renderCompositionByEstado for
+  // the actual rendering. Same idiom as setRankingOrientation.
+  function setCompositionOrientation(orientation) {
+    state.compositionOrientation = orientation;
+    document.getElementById("composition-orientation-categoria").classList.toggle("active", orientation === "categoria");
+    document.getElementById("composition-orientation-estado").classList.toggle("active", orientation === "estado");
+    document.getElementById("composition-by-categoria-group").classList.toggle("hidden", orientation !== "categoria");
+    document.getElementById("composition-by-estado-group").classList.toggle("hidden", orientation !== "estado");
+    updateUrl();
+    render();
+  }
+
   function yearFromPointerEvent(e) {
     const rect = document.querySelector(".sparkline-wrap").getBoundingClientRect();
     const frac = (e.clientX - rect.left) / rect.width;
@@ -1625,6 +1716,10 @@
     document.getElementById("label_index_first").textContent = t.label_index_first;
     document.getElementById("label_composition_scope").textContent = t.label_composition_scope;
     document.getElementById("label_composition_agg").textContent = t.label_agg_level;
+    document.getElementById("label_composition_orientation").textContent = t.label_composition_orientation;
+    document.getElementById("composition-orientation-categoria").textContent = t.composition_orientation_categoria;
+    document.getElementById("composition-orientation-estado").textContent = t.composition_orientation_estado;
+    document.getElementById("label_composition_produto").textContent = t.label_category;
     document.getElementById("label_ranking_agg_level").textContent = t.label_agg_level;
     document.getElementById("label_ranking_category").textContent = t.label_category;
     document.getElementById("label_ranking_product_select").textContent = t.label_ranking_product_select;
@@ -1670,12 +1765,14 @@
     populateTrendsCategorySelect();
     populateExploreCategorySelect();
     populateCompositionScopeSelect();
+    populateCompositionProdutoSelect();
     populateRankingScopeSelect();
     populateExploreMunisSelect();
 
     const rankingFilterLabel = currentRankingFilterLabel();
     const trendsFilterLabel = currentTrendsFilterLabel();
     const exploreFilterLabel = currentExploreFilterLabel();
+    const compositionProdutoLabel = currentCompositionProdutoLabel();
     // Ranking's own scope label for the produto-orientation title: a
     // specific município, else the selected state, else null (whole
     // region) — same precedence Composição's title already uses.
@@ -1684,9 +1781,11 @@
       ranking: state.rankingOrientation === "produto"
         ? (rankingScopeLabel ? t.title_ranking_produtos_scope.replace("{scope}", rankingScopeLabel) : t.title_ranking_produtos)
         : (rankingFilterLabel ? t.title_ranking_product.replace("{produto}", rankingFilterLabel) : t.title_ranking),
-      composition: state.compositionScope
-        ? t.title_composition_muni.replace("{municipio}", state.compositionScope)
-        : (state.uf ? t.title_composition_uf.replace("{uf}", state.uf) : t.title_composition),
+      composition: state.compositionOrientation === "estado"
+        ? (compositionProdutoLabel ? t.title_composition_estado.replace("{categoria}", compositionProdutoLabel) : t.title_composition_estado_base)
+        : (state.compositionScope
+          ? t.title_composition_muni.replace("{municipio}", state.compositionScope)
+          : (state.uf ? t.title_composition_uf.replace("{uf}", state.uf) : t.title_composition)),
       change: t.title_change,
       trends: trendsFilterLabel ? t.title_trends_category.replace("{categoria}", trendsFilterLabel) : t.title_trends,
       explore: exploreFilterLabel ? t.title_explore_category.replace("{categoria}", exploreFilterLabel) : t.title_explore,
@@ -1694,7 +1793,9 @@
     };
     const subtitles = {
       ranking: state.rankingOrientation === "produto" ? t.subtitle_ranking_produtos : t.subtitle_ranking,
-      composition: state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition,
+      composition: state.compositionOrientation === "estado"
+        ? t.subtitle_composition_estado
+        : (state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition),
       change: t.subtitle_change,
       trends: trendsFilterLabel ? t.subtitle_trends_category : t.subtitle_trends,
       explore: exploreFilterLabel ? t.subtitle_explore_category : t.subtitle_explore,
@@ -2131,6 +2232,14 @@
     }
     hideCompositionLoading();
 
+    // Axis swap: instead of one geographic scope's value broken down by
+    // category, break one category down by state — see
+    // renderCompositionByEstado.
+    if (state.compositionOrientation === "estado") {
+      renderCompositionByEstado();
+      return;
+    }
+
     const series = state.compositionAgg === "sh2" ? compositionSeriesSh2 : compositionSeriesSec;
     const index = state.compositionAgg === "sh2" ? compositionIndexSh2 : compositionIndexSec;
     // Three-way scope: one municipality's own composition (recomputed from
@@ -2145,6 +2254,47 @@
       activeCompositionSeries = series;
     }
     renderStackedComposition(activeCompositionSeries, { svg: "composition-svg", guide: "comp-guide", legend: "composition-legend" });
+  }
+
+  // Composição's axis swap: one product/category's value broken down by
+  // state instead of one geographic scope's value broken down by category.
+  // Reuses buildCompositionSeries unchanged — a UF code slotted into its
+  // "produto" field works fine, since that function only cares about the
+  // grouping key, and categoryLabelFor's existing graceful-degradation
+  // fallback (dictionary miss → raw value) then displays each UF code as
+  // itself, since it won't match any SEC/SH2 dictionary entry. Deliberately
+  // município-free (see state.compositionOrientation's comment) and always
+  // spans the whole region — state.uf/compositionScope don't apply here,
+  // since state IS the axis being broken down.
+  function renderCompositionByEstado() {
+    const level = state.compositionAgg;
+    const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
+    if (!state.compositionProduto || !index.byProduto.has(state.compositionProduto)) {
+      populateCompositionProdutoSelect();
+    }
+    const rows = (state.compositionProduto && index.byProduto.get(state.compositionProduto)) || [];
+    activeCompositionSeries = buildCompositionSeries(buildUfRows(rows), dictionary);
+    renderStackedComposition(activeCompositionSeries, { svg: "composition-svg", guide: "comp-guide", legend: "composition-legend" });
+  }
+
+  // Sums one category's per-municipio rows (already {municipio,ano,valor})
+  // into per-state+year totals, in the {produto,ano,valor} shape
+  // buildCompositionSeries expects — "produto" holds a UF code here instead
+  // of a category name (see renderCompositionByEstado).
+  function buildUfRows(rows) {
+    const sums = new Map(); // "uf|ano" -> valor
+    for (const r of rows) {
+      const meta = municipioMeta.get(r.municipio);
+      if (!meta) continue;
+      const key = meta.uf + "|" + r.ano;
+      sums.set(key, (sums.get(key) || 0) + r.valor);
+    }
+    const result = [];
+    for (const [key, valor] of sums) {
+      const sep = key.lastIndexOf("|");
+      result.push({ produto: key.slice(0, sep), ano: parseInt(key.slice(sep + 1), 10), valor });
+    }
+    return result;
   }
 
   // Sums every municipality-in-uf's own {produto,ano,valor} rows down to one
