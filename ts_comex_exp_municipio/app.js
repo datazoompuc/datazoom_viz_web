@@ -55,6 +55,7 @@
       title_trends_produtos: "Tendências por categoria",
       title_trends_produtos_scope: "Tendências por categoria — {scope}",
       subtitle_trends_produtos: "Top categorias por valor total exportado, 1997–2025",
+      trends_hint: "Ordenado pelo valor total exportado no período (1997–2025), não pelo ano selecionado",
       view_explore: "Explorar",
       title_explore: "Comparar municípios",
       title_explore_category: "Comparar municípios — {categoria}",
@@ -173,6 +174,7 @@
       title_trends_produtos: "Trends by category",
       title_trends_produtos_scope: "Trends by category — {scope}",
       subtitle_trends_produtos: "Top categories by total export value, 1997–2025",
+      trends_hint: "Ranked by total value exported over the period (1997–2025), not by the selected year",
       view_explore: "Explore",
       title_explore: "Compare municipalities",
       title_explore_category: "Compare municipalities — {categoria}",
@@ -2032,6 +2034,7 @@
     document.getElementById("trends-orientation-produto").textContent = t.ranking_orientation_produto;
     document.getElementById("label_trends_produto_level").textContent = t.label_agg_level;
     document.getElementById("label_trends_scope").textContent = t.label_ranking_scope;
+    document.getElementById("trends-hint").textContent = t.trends_hint;
     document.getElementById("label_explore_agg_level").textContent = t.label_agg_level;
     document.getElementById("label_explore_category").textContent = t.label_category;
     document.getElementById("label_explore_orientation").textContent = t.label_explore_orientation;
