@@ -172,6 +172,13 @@ html, body {
   font-size: 0.9rem;
 }
 
+/* Variação replaces the sparkline/slider block (.slider-inline, ~96px
+   tall) with this Ano A/B row instead — without a matching min-height,
+   this row's own shorter natural height (~59px) leaves every control
+   below it (starting with the global Estado selector) sitting ~37px
+   higher here than in every other view, an inconsistency that's easy to
+   notice when flipping between views. */
+#change-group { min-height: 96px; }
 .change-years-row { display: flex; gap: 10px; }
 .change-year-field { flex: 1 1 0; min-width: 0; }
 .change-year-field label { font-size: 0.85rem; }
