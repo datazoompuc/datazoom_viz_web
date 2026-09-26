@@ -42,7 +42,6 @@
       subtitle_change_produtos: "Categorias de produto ordenadas pela variação no valor exportado",
       label_uf_filter: "Estado",
       uf_all: "Todos os estados",
-      uf_all_disabled_hint: "Indisponível em Variação: escolha um estado",
       title_composition_uf: "Composição das exportações — {uf}",
       label_year_a: "Ano A",
       label_year_b: "Ano B",
@@ -162,7 +161,6 @@
       subtitle_change_produtos: "Product categories ranked by change in export value",
       label_uf_filter: "State",
       uf_all: "All states",
-      uf_all_disabled_hint: "Not available in Change: pick a state",
       title_composition_uf: "Export composition — {uf}",
       label_year_a: "Year A",
       label_year_b: "Year B",
@@ -485,6 +483,17 @@
     }
     const ufs = Array.from(new Set(Array.from(meta.values()).map((m) => m.uf))).sort();
     return { totalsByMunicipio: byMuni, municipioMeta: meta, ufList: ufs };
+  }
+
+  // Shared by the global uf-filter-select's change handler for every
+  // per-município scope picker (Composição/Ranking/Variação/Tendências/
+  // Explorar) — true only when scope is set AND (it no longer exists, or a
+  // specific state is selected that it doesn't belong to). uf === null
+  // ("Todos os estados") never invalidates a município scope on its own.
+  function isMunicipioScopeInvalid(scope, uf) {
+    if (!scope) return false;
+    const meta = municipioMeta.get(scope);
+    return !meta || (!!uf && meta.uf !== uf);
   }
 
   // municipality_composition_{sec,sh2}.json ship as index-referencing
@@ -1666,40 +1675,23 @@
     ufFilterSelect.value = state.uf || "";
     ufFilterSelect.addEventListener("change", (e) => {
       state.uf = e.target.value || null;
-      // Variação can't render without a concrete state, so if it's the
-      // active view when the global filter is cleared, re-force a default
-      // right here — before render() computes the (state-dependent) title
-      // — rather than leaving it to renderChange()'s own self-heal, which
-      // only runs after the title's already been computed for this pass.
-      if (state.view === "change" && !state.uf) {
-        state.uf = ufList[0];
-        ufFilterSelect.value = state.uf;
-      }
       // Explorar's hand-picked municipalities must all belong to the newly
       // selected state; if that empties the selection, fall back to that
       // state's own top-5 by total export value (same convention initState
       // uses for the app's very first default pick).
       const validMunis = state.exploreMunis.filter((m) => !state.uf || (municipioMeta.get(m) && municipioMeta.get(m).uf === state.uf));
       state.exploreMunis = validMunis.length ? validMunis : computeTrendMunicipalities(5);
-      // Composição's per-municipality scope is meaningless once that place
-      // falls outside the newly selected state.
-      if (state.compositionScope && (!municipioMeta.get(state.compositionScope) || municipioMeta.get(state.compositionScope).uf !== state.uf)) {
-        state.compositionScope = null;
-      }
-      // Same for Ranking's, Variação's, Tendências' and Explorar's own
-      // produto-orientation scopes.
-      if (state.rankingScope && (!municipioMeta.get(state.rankingScope) || municipioMeta.get(state.rankingScope).uf !== state.uf)) {
-        state.rankingScope = null;
-      }
-      if (state.changeScope && (!municipioMeta.get(state.changeScope) || municipioMeta.get(state.changeScope).uf !== state.uf)) {
-        state.changeScope = null;
-      }
-      if (state.trendsScope && (!municipioMeta.get(state.trendsScope) || municipioMeta.get(state.trendsScope).uf !== state.uf)) {
-        state.trendsScope = null;
-      }
-      if (state.exploreScope && (!municipioMeta.get(state.exploreScope) || municipioMeta.get(state.exploreScope).uf !== state.uf)) {
-        state.exploreScope = null;
-      }
+      // Composição's, Ranking's, Variação's, Tendências' and Explorar's own
+      // per-município scopes are meaningless once that place falls outside
+      // the newly selected state — but clearing the filter back to "Todos
+      // os estados" (uf === null) doesn't invalidate anything, since a
+      // município scope never depended on a state filter being set in the
+      // first place.
+      if (isMunicipioScopeInvalid(state.compositionScope, state.uf)) state.compositionScope = null;
+      if (isMunicipioScopeInvalid(state.rankingScope, state.uf)) state.rankingScope = null;
+      if (isMunicipioScopeInvalid(state.changeScope, state.uf)) state.changeScope = null;
+      if (isMunicipioScopeInvalid(state.trendsScope, state.uf)) state.trendsScope = null;
+      if (isMunicipioScopeInvalid(state.exploreScope, state.uf)) state.exploreScope = null;
       updateUrl();
       render();
     });
@@ -1775,15 +1767,6 @@
   function setView(view) {
     stopPlaying();
     state.view = view;
-    // Variação's dumbbell chart can't render all 446 municipalities at
-    // once, so — unlike every other view — it needs a concrete state the
-    // first time it's opened. Once picked, the choice stays set (and
-    // visible/consistent) everywhere else too, since state.uf is one
-    // global filter, not one per view.
-    if (view === "change" && !state.uf) {
-      state.uf = ufList[0];
-      document.getElementById("uf-filter-select").value = state.uf;
-    }
     document.getElementById("view-ranking").classList.toggle("active", view === "ranking");
     document.getElementById("view-composition").classList.toggle("active", view === "composition");
     document.getElementById("view-change").classList.toggle("active", view === "change");
@@ -2005,18 +1988,7 @@
     document.getElementById("ranking-axis-label").textContent = t.ranking_axis_label;
     document.getElementById("change-axis-label").textContent = t.change_axis_label;
     document.getElementById("label_uf_filter").textContent = t.label_uf_filter;
-    // "Todos os estados" isn't a valid choice while on Variação — its
-    // dumbbell chart can't render all 446 municipalities, so it always
-    // forces a concrete state back (see setView/renderChange). Disabling
-    // just this one option (rather than the whole select, which stays
-    // useful for picking a *different* state) shows why, instead of
-    // silently snapping the selection back to some other state — which
-    // otherwise reads as "I can't select this" (a real bug report this
-    // was written to fix), not as an unavailable-in-this-view choice.
-    const ufAllOption = document.getElementById("uf-filter-select").options[0];
-    ufAllOption.textContent = t.uf_all;
-    ufAllOption.disabled = state.view === "change";
-    ufAllOption.title = state.view === "change" ? t.uf_all_disabled_hint : "";
+    document.getElementById("uf-filter-select").options[0].textContent = t.uf_all;
     document.getElementById("label_year_a").textContent = t.label_year_a;
     document.getElementById("label_year_b").textContent = t.label_year_b;
     document.getElementById("label_change_orientation").textContent = t.label_change_orientation;
@@ -2859,11 +2831,13 @@
   // filter (changeDataSource) passes an inverted per-category source
   // instead. Guards each lookup (years && years.get(...)) since a
   // category-filtered source won't have an entry for every município,
-  // unlike totalsByMunicipio.
+  // unlike totalsByMunicipio. uf is optional — null means every município
+  // in the Legal Amazon (the same long-scrollable-list idiom the
+  // produto-orientation's own SH2 tier already uses at up to 97 rows).
   function computeChangeRows(uf, yearA, yearB, dataSource = totalsByMunicipio) {
     const rows = [];
     for (const [municipio, meta] of municipioMeta) {
-      if (meta.uf !== uf) continue;
+      if (uf && meta.uf !== uf) continue;
       const years = dataSource.get(municipio);
       const valueA = (years && years.get(yearA)) || 0;
       const valueB = (years && years.get(yearB)) || 0;
@@ -2906,17 +2880,6 @@
   }
 
   function renderChange() {
-    // Variação can't render without a concrete state (its dumbbell can't
-    // show all 446 municipalities) — setView already forces one the first
-    // time this view is entered, but the global filter can still be
-    // cleared afterwards while already here, so this stays self-healing
-    // the same way the SEC/SH2 category dispatches elsewhere already are.
-    if (!state.uf) {
-      state.uf = ufList[0];
-      document.getElementById("uf-filter-select").value = state.uf;
-      updateUrl();
-    }
-
     document.getElementById("change-legend-a-label").textContent = state.yearA;
     document.getElementById("change-legend-b-label").textContent = state.yearB;
 
