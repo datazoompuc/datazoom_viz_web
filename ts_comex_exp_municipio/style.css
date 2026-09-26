@@ -629,7 +629,7 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-.change-scroll { flex: 1 1 auto; overflow-y: auto; padding-bottom: 12px; }
+.change-scroll { flex: 1 1 auto; overflow-y: auto; padding: 10px 0 12px; }
 #change-rows { display: flex; flex-direction: column; }
 
 .change-line {
