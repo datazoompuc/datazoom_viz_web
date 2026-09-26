@@ -38,39 +38,6 @@
           <select id="change-year-b" class="sidebar-field"></select>
         </div>
       </div>
-      <div class="spacer"></div>
-
-      <p class="vars" id="label_change_orientation"></p>
-      <div class="view-toggle" id="change-orientation-toggle">
-        <button class="view-btn active" id="change-orientation-municipio" data-orientation="municipio"></button>
-        <button class="view-btn" id="change-orientation-produto" data-orientation="produto"></button>
-      </div>
-      <div class="spacer"></div>
-
-      <div id="change-by-municipio-group">
-        <label id="label_change_agg_level" for="change-agg-level-select"></label>
-        <select id="change-agg-level-select" class="sidebar-field">
-          <option value="all"></option>
-          <option value="sec"></option>
-          <option value="sh2"></option>
-        </select>
-        <div class="spacer"></div>
-        <div id="change-category-group" class="hidden">
-          <label id="label_change_category" for="change-category-select"></label>
-          <select id="change-category-select" class="sidebar-field"></select>
-        </div>
-      </div>
-
-      <div id="change-by-produto-group" class="hidden">
-        <label id="label_change_produto_level" for="change-produto-level-select"></label>
-        <select id="change-produto-level-select" class="sidebar-field">
-          <option value="sec"></option>
-          <option value="sh2"></option>
-        </select>
-        <div class="spacer"></div>
-        <label id="label_change_scope" for="change-scope-select"></label>
-        <select id="change-scope-select" class="sidebar-field"></select>
-      </div>
     </div>
 
     <div class="var_selec_group slider-inline">
@@ -104,6 +71,40 @@
       <select id="uf-filter-select" class="sidebar-field">
         <option value=""></option>
       </select>
+    </div>
+
+    <div class="var_selec_group hidden" id="change-orientation-group">
+      <p class="vars" id="label_change_orientation"></p>
+      <div class="view-toggle" id="change-orientation-toggle">
+        <button class="view-btn active" id="change-orientation-municipio" data-orientation="municipio"></button>
+        <button class="view-btn" id="change-orientation-produto" data-orientation="produto"></button>
+      </div>
+      <div class="spacer"></div>
+
+      <div id="change-by-municipio-group">
+        <label id="label_change_agg_level" for="change-agg-level-select"></label>
+        <select id="change-agg-level-select" class="sidebar-field">
+          <option value="all"></option>
+          <option value="sec"></option>
+          <option value="sh2"></option>
+        </select>
+        <div class="spacer"></div>
+        <div id="change-category-group" class="hidden">
+          <label id="label_change_category" for="change-category-select"></label>
+          <select id="change-category-select" class="sidebar-field"></select>
+        </div>
+      </div>
+
+      <div id="change-by-produto-group" class="hidden">
+        <label id="label_change_produto_level" for="change-produto-level-select"></label>
+        <select id="change-produto-level-select" class="sidebar-field">
+          <option value="sec"></option>
+          <option value="sh2"></option>
+        </select>
+        <div class="spacer"></div>
+        <label id="label_change_scope" for="change-scope-select"></label>
+        <select id="change-scope-select" class="sidebar-field"></select>
+      </div>
     </div>
 
     <div class="var_selec_group hidden" id="composition-scope-group">

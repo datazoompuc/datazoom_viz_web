@@ -1783,6 +1783,7 @@
     // filtered to one product) and trends (all-time top-N).
     document.getElementById("topn-group").classList.toggle("hidden", view !== "ranking" && view !== "trends");
     document.getElementById("change-group").classList.toggle("hidden", view !== "change");
+    document.getElementById("change-orientation-group").classList.toggle("hidden", view !== "change");
     document.getElementById("explore-group").classList.toggle("hidden", view !== "explore");
     document.getElementById("composition-scope-group").classList.toggle("hidden", view !== "composition");
     document.getElementById("ranking-product-group").classList.toggle("hidden", view !== "ranking");
