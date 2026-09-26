@@ -2895,8 +2895,6 @@
     const dataSource = changeDataSource();
     if (!dataSource) {
       document.getElementById("change-rows").innerHTML = `<div class="prodrank-loading">${I18N[state.lang].label_loading}</div>`;
-      document.getElementById("change-axis-min").textContent = "";
-      document.getElementById("change-axis-max").textContent = "";
       const level = state.changeAggLevel;
       ensureSh2Loaded().then(() => {
         populateChangeCategorySelect();
@@ -2919,8 +2917,6 @@
     const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
     if (level === "sh2" && !index) {
       document.getElementById("change-rows").innerHTML = `<div class="prodrank-loading">${I18N[state.lang].label_loading}</div>`;
-      document.getElementById("change-axis-min").textContent = "";
-      document.getElementById("change-axis-max").textContent = "";
       ensureSh2Loaded().then(() => {
         if (state.view === "change" && state.changeOrientation === "produto" && state.changeProdutoLevel === "sh2") render();
       });
@@ -2952,9 +2948,11 @@
 
   // Shared tail for both orientations above.
   function renderChangeRows(rows, labelFor = (r) => r.municipio, fullLabelFor = labelFor) {
+    // domain still drives each dot/line's horizontal position within its
+    // row (see pctForChange) — only the padded min/max numbers themselves
+    // are no longer displayed above the chart (confusing on their own,
+    // since they're a padded domain, not any município's actual value).
     const domain = changeDomain(rows);
-    document.getElementById("change-axis-min").textContent = fmtAbbrev(domain.min);
-    document.getElementById("change-axis-max").textContent = fmtAbbrev(domain.max);
 
     const container = document.getElementById("change-rows");
     container.innerHTML = "";
