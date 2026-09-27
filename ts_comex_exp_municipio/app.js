@@ -2043,6 +2043,7 @@
     document.getElementById("label_change_scope").textContent = t.label_ranking_scope;
     document.getElementById("label_explore_munis").textContent = t.label_explore_munis;
     document.getElementById("explore-hint").textContent = t.explore_hint;
+    document.getElementById("explore-produtos-hint").textContent = t.explore_hint;
     document.getElementById("label_log_scale").textContent = t.label_log_scale;
     document.getElementById("label_index_first").textContent = t.label_index_first;
     document.getElementById("explore-log").closest("label").title = state.exploreIndex ? t.explore_log_index_hint : "";
@@ -3237,13 +3238,27 @@
     const items = categoryOptionsFor(level);
     if (!items) return;
     const validValues = new Set(items.map((i) => i.value));
+    const produtoMap = categoryRowsToProdutoMap(scopeCompositionRows(level, state.exploreScope, state.uf));
     let selected = state.exploreProdutos.filter((p) => validValues.has(p));
     if (!selected.length) {
-      const rows = scopeCompositionRows(level, state.exploreScope, state.uf);
-      selected = topKeysByTotal(categoryRowsToProdutoMap(rows), 5);
+      selected = topKeysByTotal(produtoMap, 5);
       state.exploreProdutos = selected;
     }
-    for (const { value, label } of items) {
+    // Ordered by total exported value, descending — same "biggest first"
+    // criterion the município list uses (computeTrendMunicipalities), not
+    // the plain alphabetical order categoryOptionsFor returns by default.
+    // Categories with no data in this scope have no entry in produtoMap and
+    // sort as 0, falling back to their original alphabetical relative order
+    // (Array#sort is stable) since none of them out-rank each other.
+    const totalFor = (value) => {
+      const years = produtoMap.get(value);
+      if (!years) return 0;
+      let sum = 0;
+      for (const v of years.values()) sum += v;
+      return sum;
+    };
+    const orderedItems = items.slice().sort((a, b) => totalFor(b.value) - totalFor(a.value));
+    for (const { value, label } of orderedItems) {
       const opt = document.createElement("option");
       opt.value = value;
       opt.textContent = label;
@@ -3638,8 +3653,27 @@
 
     for (const s of series) {
       if (s.undefinedIndex) continue;
-      const pts = s.years.map((y, j) => `${xFor(y).toFixed(1)},${yFor(s.values[j]).toFixed(1)}`);
-      addEl("path", { class: "explore-line", stroke: s.color, d: `M${pts.join(" L")}` });
+      if (logScale) {
+        // log(0) is undefined — a real zero-export year has to break the
+        // line into a gap, not get clamped to the chart's floor by yFor,
+        // which would otherwise draw that year as if it were a small
+        // nonzero export.
+        let segment = [];
+        const flushSegment = () => {
+          if (segment.length > 1) {
+            addEl("path", { class: "explore-line", stroke: s.color, d: `M${segment.join(" L")}` });
+          }
+          segment = [];
+        };
+        s.years.forEach((y, j) => {
+          if (s.values[j] > 0) segment.push(`${xFor(y).toFixed(1)},${yFor(s.values[j]).toFixed(1)}`);
+          else flushSegment();
+        });
+        flushSegment();
+      } else {
+        const pts = s.years.map((y, j) => `${xFor(y).toFixed(1)},${yFor(s.values[j]).toFixed(1)}`);
+        addEl("path", { class: "explore-line", stroke: s.color, d: `M${pts.join(" L")}` });
+      }
     }
 
     const guideX = xFor(state.year);
