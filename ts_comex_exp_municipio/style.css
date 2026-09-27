@@ -292,11 +292,15 @@ html, body {
    above it, despite both spanning the same 100% width. */
 .year-slider-full { display: block; width: 100%; margin: 2px 0 0; accent-color: #2c5f64; }
 
-/* Play button + "Ano 2025" caption sit below the chart/slider stack (not
-   above it — nothing here needs to compete with the sparkline/slider for
-   the same full width the way the header row used to). */
-.slider-footer { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-.year-caption { display: flex; align-items: baseline; gap: 5px; }
+/* Play button and "Ano 2025" flank the sparkline+slider column instead of
+   each spanning the sidebar's full width on their own row — sparkline and
+   slider stay perfectly aligned with each other because they share this
+   one column (each still 100% of *its* width, just narrower now that the
+   column itself is inset by the button/caption on either side), not
+   because their widths are matched by hand. */
+.spark-slider-row { display: flex; align-items: center; gap: 8px; }
+.spark-slider-col { flex: 1 1 auto; min-width: 0; }
+.year-caption { display: flex; align-items: baseline; gap: 5px; flex: 0 0 auto; }
 .year-caption label { margin-bottom: 0; }
 
 .year-value {
