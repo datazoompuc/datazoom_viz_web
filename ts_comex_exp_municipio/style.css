@@ -320,7 +320,15 @@ html, body {
 .icon-btn.playing { background: #2c5f64; }
 .icon-btn svg { display: block; }
 
-.spacer { height: 6px; }
+/* flex-shrink: 0 is load-bearing here, not decorative — .menucol is a flex
+   column, and an empty div has zero content-based minimum size, so
+   whenever a view's sidebar content is tall enough to overflow, flexbox
+   squashes these gaps to 0px first (before anything with actual content
+   has to shrink at all). That's what was actually causing the "missing
+   padding above the sparkline" in some views but not others — it tracked
+   each view's own content height, not the sparkline itself. .menucol's own
+   overflow-y: auto handles genuine overflow by scrolling instead. */
+.spacer { height: 6px; flex-shrink: 0; }
 
 /* ---- Main column ---- */
 
