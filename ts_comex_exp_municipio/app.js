@@ -59,17 +59,21 @@
       view_explore: "Explorar",
       title_explore: "Comparar municípios",
       title_explore_category: "Comparar municípios — {categoria}",
-      subtitle_explore: "Valor exportado (US$) ao longo do tempo, municípios selecionados",
-      subtitle_explore_category: "Valor exportado (US$) na categoria, ao longo do tempo, municípios selecionados",
+      subtitle_explore: "Valor exportado ({unit}) ao longo do tempo, municípios selecionados",
+      subtitle_explore_category: "Valor exportado ({unit}) na categoria, ao longo do tempo, municípios selecionados",
       label_explore_munis: "Municípios (Ctrl/Cmd+clique para vários)",
       explore_hint: "Ordenado por valor total exportado",
       label_explore_orientation: "Explorar por",
       title_explore_produtos: "Comparar categorias",
       title_explore_produtos_scope: "Comparar categorias — {scope}",
-      subtitle_explore_produtos: "Valor exportado (US$) ao longo do tempo, categorias selecionadas",
+      subtitle_explore_produtos: "Valor exportado ({unit}) ao longo do tempo, categorias selecionadas",
       label_explore_produtos: "Categorias (Ctrl/Cmd+clique para várias)",
+      unit_explore_dollar: "US$",
+      unit_explore_log: "log US$",
+      unit_explore_index: "índice, ano inicial = 100",
       label_log_scale: "Escala logarítmica",
       label_index_first: "Indexado ao ano inicial (=100)",
+      explore_log_index_hint: "Não é possível combinar escala logarítmica com indexação — desmarque uma para usar a outra",
       explore_no_base: "sem exportação em {year}",
       title_composition_muni: "Composição das exportações — {municipio}",
       subtitle_composition_muni: "Categorias de produto exportadas, 1997–2025 — passe o mouse para ver o detalhamento",
@@ -178,17 +182,21 @@
       view_explore: "Explore",
       title_explore: "Compare municipalities",
       title_explore_category: "Compare municipalities — {categoria}",
-      subtitle_explore: "Export value (US$) over time, selected municipalities",
-      subtitle_explore_category: "Export value (US$) in the category, over time, selected municipalities",
+      subtitle_explore: "Export value ({unit}) over time, selected municipalities",
+      subtitle_explore_category: "Export value ({unit}) in the category, over time, selected municipalities",
       label_explore_munis: "Municipalities (Ctrl/Cmd+click for multiple)",
       explore_hint: "Sorted by total export value",
       label_explore_orientation: "Explore by",
       title_explore_produtos: "Compare categories",
       title_explore_produtos_scope: "Compare categories — {scope}",
-      subtitle_explore_produtos: "Export value (US$) over time, selected categories",
+      subtitle_explore_produtos: "Export value ({unit}) over time, selected categories",
       label_explore_produtos: "Categories (Ctrl/Cmd+click for multiple)",
+      unit_explore_dollar: "US$",
+      unit_explore_log: "log US$",
+      unit_explore_index: "index, first year = 100",
       label_log_scale: "Log scale",
       label_index_first: "Indexed to first year (=100)",
+      explore_log_index_hint: "Log scale can't be combined with indexing — uncheck one to use the other",
       explore_no_base: "no exports in {year}",
       title_composition_muni: "Export composition — {municipio}",
       subtitle_composition_muni: "Product categories exported, 1997–2025 — hover to see the breakdown",
@@ -676,6 +684,25 @@
       return categoryShortLabelFor(state.exploreAggLevel, state.exploreCategory);
     }
     return null;
+  }
+
+  // Explorar's log scale re-spaces the y-axis logarithmically but still
+  // prints real dollar figures on it — indexing instead replaces those
+  // dollar figures with a relative (=100) number. Either way the subtitle's
+  // unit needs to say which one is actually on screen, not just "US$"
+  // unconditionally (the two are mutually exclusive — see the checkbox
+  // handlers below — so only one of these three ever applies).
+  function exploreUnitLabel(t) {
+    if (state.exploreIndex) return t.unit_explore_index;
+    if (state.exploreLog) return t.unit_explore_log;
+    return t.unit_explore_dollar;
+  }
+
+  function exploreSubtitleText(t) {
+    const base = state.exploreOrientation === "produto"
+      ? t.subtitle_explore_produtos
+      : (currentExploreFilterLabel() ? t.subtitle_explore_category : t.subtitle_explore);
+    return base.replace("{unit}", exploreUnitLabel(t));
   }
 
   // Same idea for Composição's "estado" orientation — null while nothing's
@@ -1305,7 +1332,10 @@
     const decodedMunis = qMunis ? qMunis.split("|").filter((m) => totalsByMunicipio.has(m)) : [];
     state.exploreMunis = decodedMunis.length ? decodedMunis : computeTrendMunicipalities(5);
     state.exploreLog = qLog === "1";
-    state.exploreIndex = qIndex === "1";
+    // Mutually exclusive (see the checkbox handlers below) — a hand-built
+    // URL requesting both falls back to log, since that's the one most
+    // likely to have been intended when both flags are on.
+    state.exploreIndex = qIndex === "1" && !state.exploreLog;
     state.compositionScope = qCompScope && compositionIndexSec.byMunicipio.has(qCompScope) ? qCompScope : null;
     state.compositionAgg = qCompAgg === "sh2" ? "sh2" : "sec";
     state.compositionOrientation = qCompOrientation === "produto" ? "produto" : "estado";
@@ -1649,18 +1679,30 @@
       renderExplore();
     });
 
+    // Log scale and indexing are mutually exclusive — a log axis re-spaces
+    // real dollar figures, while indexing replaces them with a relative
+    // (=100) number, and combining the two "perde um pouco de sentido"
+    // (loses a bit of meaning). Checking one disables the other rather
+    // than silently unchecking it later, so the restriction is visible
+    // up front instead of only discovered by trying it.
     const logCheckbox = document.getElementById("explore-log");
+    const indexCheckbox = document.getElementById("explore-index");
     logCheckbox.checked = state.exploreLog;
+    indexCheckbox.checked = state.exploreIndex;
+    indexCheckbox.disabled = state.exploreLog;
+    logCheckbox.disabled = state.exploreIndex;
     logCheckbox.addEventListener("change", (e) => {
       state.exploreLog = e.target.checked;
+      indexCheckbox.disabled = state.exploreLog;
+      indexCheckbox.closest("label").title = state.exploreLog ? I18N[state.lang].explore_log_index_hint : "";
       updateUrl();
       renderExplore();
     });
 
-    const indexCheckbox = document.getElementById("explore-index");
-    indexCheckbox.checked = state.exploreIndex;
     indexCheckbox.addEventListener("change", (e) => {
       state.exploreIndex = e.target.checked;
+      logCheckbox.disabled = state.exploreIndex;
+      logCheckbox.closest("label").title = state.exploreIndex ? I18N[state.lang].explore_log_index_hint : "";
       updateUrl();
       renderExplore();
     });
@@ -2003,6 +2045,8 @@
     document.getElementById("explore-hint").textContent = t.explore_hint;
     document.getElementById("label_log_scale").textContent = t.label_log_scale;
     document.getElementById("label_index_first").textContent = t.label_index_first;
+    document.getElementById("explore-log").closest("label").title = state.exploreIndex ? t.explore_log_index_hint : "";
+    document.getElementById("explore-index").closest("label").title = state.exploreLog ? t.explore_log_index_hint : "";
     document.getElementById("label_composition_scope").textContent = t.label_composition_scope;
     document.getElementById("label_composition_agg").textContent = t.label_agg_level;
     document.getElementById("label_composition_orientation").textContent = t.label_composition_orientation;
@@ -2121,7 +2165,7 @@
         : (state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition),
       change: state.changeOrientation === "produto" ? t.subtitle_change_produtos : t.subtitle_change,
       trends: state.trendsOrientation === "produto" ? t.subtitle_trends_produtos : (trendsFilterLabel ? t.subtitle_trends_category : t.subtitle_trends),
-      explore: state.exploreOrientation === "produto" ? t.subtitle_explore_produtos : (exploreFilterLabel ? t.subtitle_explore_category : t.subtitle_explore),
+      explore: exploreSubtitleText(t),
       map: t[`subtitle_map_${state.mapMode}`]
     };
     document.getElementById("plot-title").textContent = titles[state.view];
@@ -3518,6 +3562,7 @@
   function renderExplore() {
     const svg = document.getElementById("explore-svg");
     const t = I18N[state.lang];
+    document.getElementById("plot-subtitle").textContent = exploreSubtitleText(t);
     const series = buildExploreSeries();
 
     if (series === null) {
