@@ -215,7 +215,7 @@ html, body {
 }
 .switch-row input { accent-color: #2c5f64; width: 16px; height: 16px; }
 
-.sparkline-wrap { margin-bottom: 4px; position: relative; }
+.sparkline-wrap { position: relative; }
 
 #year-sparkline {
   width: 100%;
@@ -292,15 +292,23 @@ html, body {
    above it, despite both spanning the same 100% width. */
 .year-slider-full { display: block; width: 100%; margin: 2px 0 0; accent-color: #2c5f64; }
 
-/* Play button and "Ano 2025" flank the sparkline+slider column instead of
-   each spanning the sidebar's full width on their own row — sparkline and
-   slider stay perfectly aligned with each other because they share this
-   one column (each still 100% of *its* width, just narrower now that the
-   column itself is inset by the button/caption on either side), not
-   because their widths are matched by hand. */
-.spark-slider-row { display: flex; align-items: center; gap: 8px; }
-.spark-slider-col { flex: 1 1 auto; min-width: 0; }
-.year-caption { display: flex; align-items: baseline; gap: 5px; flex: 0 0 auto; }
+/* Two grid rows sharing one set of column tracks: row 1 is the sparkline
+   flanked by two invisible spacer cells, row 2 is play-btn/slider/caption.
+   Column 1 and column 3's widths are each set by their tallest/widest
+   occupant (play-btn, year-caption) since the spacers have no intrinsic
+   size — so the sparkline (column 2) ends up inset to exactly match the
+   slider's width without hand-tuned padding. Each row is sized to its own
+   content, so play-btn/caption sit centered against the slider's own
+   (short) row height, not against the sparkline+slider combined height. */
+.spark-slider-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+}
+.spark-slider-spacer { width: 100%; }
+.year-caption { display: flex; align-items: baseline; gap: 5px; }
 .year-caption label { margin-bottom: 0; }
 
 .year-value {

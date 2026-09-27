@@ -41,24 +41,25 @@
     </div>
 
     <div class="var_selec_group slider-inline">
-      <div class="spark-slider-row">
+      <div class="spark-slider-grid">
+        <div class="spark-slider-spacer"></div>
+        <div class="sparkline-wrap">
+          <svg id="year-sparkline" viewBox="0 0 260 40" preserveAspectRatio="none">
+            <path id="spark-area" class="spark-area"></path>
+            <path id="spark-line" class="spark-line"></path>
+            <line id="spark-guide" class="spark-guide" y1="0" y2="40"></line>
+            <line id="spark-hover-line" class="spark-hover-line" y1="0" y2="40"></line>
+            <circle id="spark-marker" class="spark-marker" r="4"></circle>
+            <circle id="spark-hover-marker" class="spark-hover-marker" r="4"></circle>
+          </svg>
+          <div id="spark-tooltip" class="spark-tooltip"></div>
+        </div>
+        <div class="spark-slider-spacer"></div>
+
         <button id="play-btn" class="icon-btn" title="Play/Pause">
           <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
         </button>
-        <div class="spark-slider-col">
-          <div class="sparkline-wrap">
-            <svg id="year-sparkline" viewBox="0 0 260 40" preserveAspectRatio="none">
-              <path id="spark-area" class="spark-area"></path>
-              <path id="spark-line" class="spark-line"></path>
-              <line id="spark-guide" class="spark-guide" y1="0" y2="40"></line>
-              <line id="spark-hover-line" class="spark-hover-line" y1="0" y2="40"></line>
-              <circle id="spark-marker" class="spark-marker" r="4"></circle>
-              <circle id="spark-hover-marker" class="spark-hover-marker" r="4"></circle>
-            </svg>
-            <div id="spark-tooltip" class="spark-tooltip"></div>
-          </div>
-          <input type="range" id="year-slider" step="1" class="year-slider-full">
-        </div>
+        <input type="range" id="year-slider" step="1" class="year-slider-full">
         <span class="year-caption">
           <label id="label_year" for="year-slider"></label>
           <span id="year-value" class="year-value"></span>
