@@ -172,6 +172,30 @@ html, body {
   font-size: 0.9rem;
 }
 
+/* Lazy-load failure state (see loadingMarkup in app.js). The same markup is
+   injected into whichever view's loading slot the failed fetch belonged to,
+   so it has to read correctly both inside .map-loading (a centered flex
+   overlay) and .prodrank-loading (a plain padded block) — hence the column
+   direction above and the block-level button here. */
+.map-loading { flex-direction: column; gap: 10px; }
+.load-error-text { color: var(--muted); }
+
+.retry-btn {
+  display: block;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.retry-btn:hover { background: #f6f2ea; }
+.map-loading .retry-btn { margin-top: 0; }
+
 /* Variação replaces the sparkline/slider block (.slider-inline, ~96px
    tall) with this Ano A/B row instead — without a matching min-height,
    this row's own shorter natural height (~59px) leaves every control

@@ -110,6 +110,8 @@
       prodrank_cat_industria: "Indústria e manufaturados",
       ranking_product_total_prefix: "Total exportado no ano: ",
       label_loading: "Carregando…",
+      label_load_error: "Não foi possível carregar os dados.",
+      label_retry: "Tentar novamente",
       view_map: "Mapa",
       label_map_mode: "VARIÁVEIS:",
       map_mode_forest: "Compatíveis c/ Floresta",
@@ -233,6 +235,8 @@
       prodrank_cat_industria: "Industry & manufactured goods",
       ranking_product_total_prefix: "Total exported that year: ",
       label_loading: "Loading…",
+      label_load_error: "Could not load the data.",
+      label_retry: "Try again",
       view_map: "Map",
       label_map_mode: "VARIABLES:",
       map_mode_forest: "Forest Compatible",
@@ -421,6 +425,79 @@
   let sparkXFor = null;
   let sparkYFor = null;
 
+  // ---- Lazy-load failure handling ----
+  //
+  // Every dataset below the eagerly-loaded core (SH2, the SH4 product
+  // ranking, the map's Leaflet bundle + geometry) is fetched through a
+  // memoized ensure*Loaded() promise, and each render function paints a
+  // "Carregando…" placeholder while that promise is pending. Two things
+  // have to hold when one of those fetches fails, or the view is stuck on
+  // that placeholder forever with nothing explaining why:
+  //
+  //   1. The memo must be dropped, so the next attempt actually re-fetches.
+  //      Keeping a rejected promise cached means every later call returns
+  //      the same rejection and the feature stays broken for the rest of
+  //      the session even after the network recovers — only a page reload
+  //      would clear it. rememberUntilFailed() below wraps each memo
+  //      assignment to guarantee this.
+  //   2. The placeholder must turn into an error the user can act on.
+  //      loadFailed is a single flag rather than per-dataset state: only
+  //      one lazy load is ever in flight for the visible view, and the
+  //      placeholder it replaces is already view-specific.
+  //
+  // The retry button is wired once via delegation (see initControls) since
+  // the error can surface inside any of the per-view loading containers.
+  let loadFailed = false;
+
+  // Assigns `promise` to a memo slot, clearing that slot if it rejects so
+  // a later call re-fetches instead of replaying the failure. Returns the
+  // promise unchanged, so callers still see the rejection.
+  function rememberUntilFailed(promise, forget) {
+    promise.catch(() => { forget(); });
+    return promise;
+  }
+
+  // Attached at every ensure*Loaded() call site. Swaps the pending
+  // "Carregando…" placeholder for the error + retry state by re-rendering;
+  // the render functions read loadFailed via loadingMarkup() below.
+  //
+  // The early return matters: render() re-enters the same ensure*Loaded()
+  // path that just failed, so without it a failure would re-render, which
+  // would re-fetch (the memo having just been dropped), which would fail
+  // again — a tight request loop against an already-failing endpoint.
+  // suppressedLoad() below stops the re-fetch; this stops the re-render.
+  function onLazyLoadFailed(err) {
+    if (loadFailed) return;
+    console.error("Lazy load failed", err);
+    loadFailed = true;
+    render();
+  }
+
+  // What ensure*Loaded() returns while the error state is on screen: a
+  // promise that never settles, so the render painting that error doesn't
+  // kick off a fresh request and neither its .then nor its .catch runs.
+  // The view is waiting on the user (the retry button), not the network;
+  // clearing loadFailed is what re-opens this path.
+  function suppressedLoad() {
+    return new Promise(() => {});
+  }
+
+  // What a view's loading container should contain right now: the neutral
+  // "Carregando…" while a fetch is in flight, or an error plus a retry
+  // button once one has failed. Returned as HTML (not text) because of the
+  // button — every caller assigns it through innerHTML.
+  function loadingMarkup(pendingLabel) {
+    const t = I18N[state.lang];
+    if (!loadFailed) return escapeHtml(pendingLabel || t.label_loading);
+    return `<span class="load-error-text">${escapeHtml(t.label_load_error)}</span>` +
+      `<button type="button" class="retry-btn" data-role="retry-load">${escapeHtml(t.label_retry)}</button>`;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
   Promise.all([
     fetchJson(`${DATA_DIR}/dictionary.json`),
     fetchJson(`${DATA_DIR}/municipality_totals.json`),
@@ -534,8 +611,9 @@
   // anything until someone actually asks for the finer breakdown. ----
 
   function ensureSh2Loaded() {
+    if (loadFailed) return suppressedLoad();
     if (sh2LoadPromise) return sh2LoadPromise;
-    sh2LoadPromise = Promise.all([
+    sh2LoadPromise = rememberUntilFailed(Promise.all([
       fetchJson(`${DATA_DIR}/composition_sh2.json`),
       fetchJson(`${DATA_DIR}/municipality_composition_sh2.json`),
       fetchJson(`${DATA_DIR}/products_sh2.json`)
@@ -545,7 +623,7 @@
       productsSh2 = prod;
       compositionSeriesSh2 = buildCompositionSeries(compositionSh2, dictionary);
       compositionIndexSh2 = buildCompositionIndexes(muniCompositionSh2);
-    });
+    }), () => { sh2LoadPromise = null; });
     return sh2LoadPromise;
   }
 
@@ -610,8 +688,9 @@
   };
 
   function ensureProductRankingLoaded() {
+    if (loadFailed) return suppressedLoad();
     if (productRankingPromise) return productRankingPromise;
-    productRankingPromise = fetchJson(`${DATA_DIR}/product_ranking.json`).then((data) => {
+    productRankingPromise = rememberUntilFailed(fetchJson(`${DATA_DIR}/product_ranking.json`).then((data) => {
       productRanking = data;
       productsByCode = new Map(data.produtos.map((p) => [p.code, p]));
       productRankingRowsByCode = buildProductRankingIndex(data);
@@ -620,7 +699,7 @@
         updateUrl();
       }
       populateRankingProductPicker();
-    });
+    }), () => { productRankingPromise = null; });
     return productRankingPromise;
   }
 
@@ -966,8 +1045,13 @@
   // ~6MB dataset load until the view is actually opened. ----
 
   function ensureLeafletLoaded() {
+    if (loadFailed) return suppressedLoad();
     if (leafletLoadPromise) return leafletLoadPromise;
-    leafletLoadPromise = new Promise((resolve, reject) => {
+    // Unlike the JSON fetches, this injects tags into <head>, so a failed
+    // attempt has to remove its own <script>/<link> before the retry adds
+    // a fresh pair — otherwise each retry leaves another dead tag behind
+    // and the browser may serve the still-failing cached entry.
+    leafletLoadPromise = rememberUntilFailed(new Promise((resolve, reject) => {
       const link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
@@ -976,15 +1060,20 @@
       const script = document.createElement("script");
       script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load Leaflet"));
+      script.onerror = () => {
+        link.remove();
+        script.remove();
+        reject(new Error("Failed to load Leaflet"));
+      };
       document.head.appendChild(script);
-    });
+    }), () => { leafletLoadPromise = null; });
     return leafletLoadPromise;
   }
 
   function ensureMapDataLoaded() {
+    if (loadFailed) return suppressedLoad();
     if (mapDataPromise) return mapDataPromise;
-    mapDataPromise = Promise.all([
+    mapDataPromise = rememberUntilFailed(Promise.all([
       fetchJson(`${DATA_DIR}/map/map_data.json`),
       fetchJson(`${DATA_DIR}/map/municipalities.geojson`),
       fetchJson(`${DATA_DIR}/map/states_boundary.geojson`),
@@ -996,7 +1085,7 @@
         mapCellByKey.set(`${municipioIdx}|${ano}|${floresta}`, { categoriaIdx, produtoIdx, valor });
       }
       return { municGeo, statesGeo, legalAmazonGeo };
-    });
+    }), () => { mapDataPromise = null; });
     return mapDataPromise;
   }
 
@@ -1180,11 +1269,11 @@
         loadingDiv.className = "map-loading";
         container.parentElement.appendChild(loadingDiv);
       }
-      loadingDiv.textContent = t.map_loading;
+      loadingDiv.innerHTML = loadingMarkup(t.map_loading);
       ensureMapReady().then(() => {
         loadingDiv.remove();
         if (state.view === "map") { fitMapToUf(); updateMapColors(); }
-      });
+      }).catch(onLazyLoadFailed);
       return;
     }
 
@@ -1423,6 +1512,28 @@
 
     document.getElementById("play-btn").addEventListener("click", togglePlay);
 
+    // One delegated listener rather than one per container: the retry
+    // button is rendered by loadingMarkup() into whichever view's loading
+    // slot failed, and those slots are rebuilt on every render, so binding
+    // directly would mean re-binding each time. Clearing loadFailed and
+    // re-rendering re-enters the same ensure*Loaded() path, which now
+    // re-fetches because the rejected memo was dropped.
+    //
+    // Capture phase, and stopping propagation: Composição's and Explorar's
+    // loading overlays sit *inside* their chart areas, and those areas
+    // treat a click as "jump the year slider to this x-position". A retry
+    // click would otherwise both retry and silently move the year. Capture
+    // runs before those handlers, which bubble-phase stopPropagation would
+    // be too late to prevent.
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest('[data-role="retry-load"]');
+      if (!btn) return;
+      e.stopPropagation();
+      e.preventDefault();
+      loadFailed = false;
+      render();
+    }, true);
+
     document.getElementById("lang-toggle").addEventListener("click", () => {
       state.lang = state.lang === "pt" ? "en" : "pt";
       updateUrl();
@@ -1466,7 +1577,7 @@
       state.rankingProduct = code;
       updateUrl();
       syncRankingProductControls();
-      ensureProductRankingLoaded().then(() => render());
+      ensureProductRankingLoaded().then(() => render()).catch(onLazyLoadFailed);
     });
 
     const rankingProductSelect = document.getElementById("ranking-product-select");
@@ -1475,7 +1586,7 @@
       state.rankingProduct = e.target.value || null;
       updateUrl();
       syncRankingProductControls();
-      if (state.rankingProduct) ensureProductRankingLoaded().then(() => render());
+      if (state.rankingProduct) ensureProductRankingLoaded().then(() => render()).catch(onLazyLoadFailed);
       else render();
     });
 
@@ -1808,6 +1919,11 @@
 
   function setView(view) {
     stopPlaying();
+    // A failed load in the view being left shouldn't pre-empt the one being
+    // entered: loadFailed suppresses every ensure*Loaded() while set, so
+    // without this the next view would open straight into an error it never
+    // actually attempted. Leaving the view is itself a fresh attempt.
+    loadFailed = false;
     state.view = view;
     document.getElementById("view-ranking").classList.toggle("active", view === "ranking");
     document.getElementById("view-composition").classList.toggle("active", view === "composition");
@@ -2281,11 +2397,11 @@
   // always-available cross-product totals.
   function renderRankingByProduct(t) {
     if (!productRanking) {
-      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
       document.getElementById("region-total-label").textContent = "";
       ensureProductRankingLoaded().then(() => {
         if (state.view === "ranking" && state.rankingAggLevel === "sh4" && state.rankingProduct) render();
-      });
+      }).catch(onLazyLoadFailed);
       return;
     }
     renderRankingFromRows(t, productRankingRowsByCode.get(state.rankingProduct) || []);
@@ -2303,12 +2419,12 @@
   function renderRankingByCategory(t, level) {
     const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
     if (!index) {
-      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
       document.getElementById("region-total-label").textContent = "";
       ensureSh2Loaded().then(() => {
         populateRankingCategorySelect();
         if (state.view === "ranking" && state.rankingAggLevel === level) render();
-      });
+      }).catch(onLazyLoadFailed);
       return;
     }
     if (!state.rankingCategory || !index.byProduto.has(state.rankingCategory)) {
@@ -2337,11 +2453,11 @@
   function renderRankingProdutosCategoria(t, level) {
     const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
     if (level === "sh2" && !index) {
-      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
       document.getElementById("region-total-label").textContent = "";
       ensureSh2Loaded().then(() => {
         if (state.view === "ranking" && state.rankingOrientation === "produto" && state.rankingProdutoLevel === "sh2") render();
-      });
+      }).catch(onLazyLoadFailed);
       return;
     }
 
@@ -2352,11 +2468,11 @@
 
   function renderRankingProdutosSh4(t) {
     if (!productRanking) {
-      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+      document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
       document.getElementById("region-total-label").textContent = "";
       ensureProductRankingLoaded().then(() => {
         if (state.view === "ranking" && state.rankingOrientation === "produto" && state.rankingProdutoLevel === "sh4") render();
-      });
+      }).catch(onLazyLoadFailed);
       return;
     }
     const rows = sh4ScopeRows(state.uf, state.rankingScope)
@@ -2587,7 +2703,7 @@
       showCompositionLoading();
       ensureSh2Loaded().then(() => {
         if (state.view === "composition") render();
-      });
+      }).catch(onLazyLoadFailed);
       return;
     }
     hideCompositionLoading();
@@ -2709,7 +2825,7 @@
       loadingDiv.className = "map-loading";
       area.appendChild(loadingDiv);
     }
-    loadingDiv.textContent = I18N[state.lang].label_loading;
+    loadingDiv.innerHTML = loadingMarkup();
   }
 
   function hideCompositionLoading() {
@@ -2939,12 +3055,12 @@
 
     const dataSource = changeDataSource();
     if (!dataSource) {
-      document.getElementById("change-rows").innerHTML = `<div class="prodrank-loading">${I18N[state.lang].label_loading}</div>`;
+      document.getElementById("change-rows").innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
       const level = state.changeAggLevel;
       ensureSh2Loaded().then(() => {
         populateChangeCategorySelect();
         if (state.view === "change" && state.changeAggLevel === level) render();
-      });
+      }).catch(onLazyLoadFailed);
       return;
     }
 
@@ -2961,10 +3077,10 @@
     const level = state.changeProdutoLevel;
     const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
     if (level === "sh2" && !index) {
-      document.getElementById("change-rows").innerHTML = `<div class="prodrank-loading">${I18N[state.lang].label_loading}</div>`;
+      document.getElementById("change-rows").innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
       ensureSh2Loaded().then(() => {
         if (state.view === "change" && state.changeOrientation === "produto" && state.changeProdutoLevel === "sh2") render();
-      });
+      }).catch(onLazyLoadFailed);
       return;
     }
     const rows = computeChangeProdutoRows(level, state.changeScope, state.uf, state.yearA, state.yearB);
@@ -3362,10 +3478,10 @@
       const level = state.trendsProdutoLevel;
       const dataSource = trendsProdutoDataSource();
       if (!dataSource) {
-        grid.innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+        grid.innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
         ensureSh2Loaded().then(() => {
           if (state.view === "trends" && state.trendsOrientation === "produto" && state.trendsProdutoLevel === level) render();
-        });
+        }).catch(onLazyLoadFailed);
         return;
       }
       const produtos = topKeysByTotal(dataSource, state.topN);
@@ -3380,12 +3496,12 @@
 
     const dataSource = trendsDataSource();
     if (!dataSource) {
-      grid.innerHTML = `<div class="prodrank-loading">${t.label_loading}</div>`;
+      grid.innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
       const level = state.trendsAggLevel;
       ensureSh2Loaded().then(() => {
         populateTrendsCategorySelect();
         if (state.view === "trends" && state.trendsAggLevel === level) render();
-      });
+      }).catch(onLazyLoadFailed);
       return;
     }
 
@@ -3589,7 +3705,7 @@
         loadingDiv.className = "map-loading";
         document.getElementById("explore-chart-area").appendChild(loadingDiv);
       }
-      loadingDiv.textContent = t.label_loading;
+      loadingDiv.innerHTML = loadingMarkup();
       const orientation = state.exploreOrientation;
       const level = orientation === "produto" ? state.exploreProdutoLevel : state.exploreAggLevel;
       ensureSh2Loaded().then(() => {
@@ -3597,7 +3713,7 @@
         const stillSameContext = state.view === "explore" && state.exploreOrientation === orientation &&
           (orientation === "produto" ? state.exploreProdutoLevel === level : state.exploreAggLevel === level);
         if (stillSameContext) render();
-      });
+      }).catch(onLazyLoadFailed);
       return;
     }
     const existingLoading = document.getElementById("explore-loading");
