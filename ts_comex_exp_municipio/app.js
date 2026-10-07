@@ -19,7 +19,6 @@
     pt: {
       plot_name: "Data Zoom Amazônia",
       plot_desc: "Comércio exterior na Amazônia (COMEX): valor da exportação por município",
-      label_topn_name: "Municípios exibidos",
       label_year: "Ano",
       label_view_name: "Visualização",
       view_ranking: "Ranking",
@@ -147,7 +146,6 @@
     en: {
       plot_name: "Data Zoom Amazônia",
       plot_desc: "External trade in the Amazon (COMEX): export value by municipality",
-      label_topn_name: "Municipalities shown",
       label_year: "Year",
       label_view_name: "View",
       view_ranking: "Ranking",
@@ -289,16 +287,20 @@
   const SPARK_H = 40;
   const SPARK_PAD = 4;
 
+  // How many entries Ranking and Tendências show. This was a 10/15/20/30
+  // <select> in the sidebar; it was dropped because the choice cluttered
+  // the controls more than it helped — 15 reads well in both views, and
+  // nothing else about them depends on it being adjustable.
+  const TOP_N = 15;
+
   const state = {
     lang: "pt",
     year: null,
-    topN: 15,
     view: "ranking", // "ranking" | "composition" | "change" | "trends" | "explore"
     playing: false,
     playTimer: null,
-    // Shared across every view (a single global filter, not one per view —
-    // same precedent as topN, which Ranking and Tendências already share
-    // as one control). null = "Todos os estados". Variação is the one
+    // Shared across every view (a single global filter, not one per
+    // view). null = "Todos os estados". Variação is the one
     // exception: its dumbbell chart can't render all 446 municipalities
     // at once, so it always needs one concrete state — if this is still
     // null the first time Variação is opened, its own setView handling
@@ -1398,7 +1400,6 @@
     const params = new URLSearchParams(location.search);
     const qLang = params.get("lang");
     const qYear = parseInt(params.get("year"), 10);
-    const qTopN = parseInt(params.get("topn"), 10);
     const qView = params.get("view");
     const qState = params.get("state");
     const qYearA = parseInt(params.get("yeara"), 10);
@@ -1438,7 +1439,6 @@
     state.year = Number.isFinite(qYear) && qYear >= dictionary.year_inicio && qYear <= dictionary.year_final
       ? qYear
       : dictionary.year_final;
-    state.topN = [10, 15, 20, 30].includes(qTopN) ? qTopN : 15;
     state.view = ["ranking", "composition", "change", "trends", "explore", "map"].includes(qView) ? qView : "ranking";
     // null (not ufList[0]) if absent/invalid — "Todos os estados" is a
     // valid, common default for every view except Variação, which forces
@@ -1495,7 +1495,6 @@
     const params = new URLSearchParams();
     params.set("lang", state.lang);
     params.set("year", state.year);
-    params.set("topn", state.topN);
     params.set("view", state.view);
     params.set("state", state.uf || "");
     params.set("yeara", state.yearA);
@@ -1575,14 +1574,6 @@
       state.lang = state.lang === "pt" ? "en" : "pt";
       updateUrl();
       render();
-    });
-
-    document.getElementById("topn-select").value = String(state.topN);
-    document.getElementById("topn-select").addEventListener("change", (e) => {
-      state.topN = parseInt(e.target.value, 10);
-      updateUrl();
-      if (state.view === "trends") renderTrends();
-      else renderRanking();
     });
 
     document.getElementById("view-ranking").addEventListener("click", () => setView("ranking"));
@@ -1974,9 +1965,6 @@
     document.getElementById("trends-panel").classList.toggle("hidden", view !== "trends");
     document.getElementById("explore-panel").classList.toggle("hidden", view !== "explore");
     document.getElementById("map-panel").classList.toggle("hidden", view !== "map");
-    // topn-group is shared between ranking (per-year top-N, optionally
-    // filtered to one product) and trends (all-time top-N).
-    document.getElementById("topn-group").classList.toggle("hidden", view !== "ranking" && view !== "trends");
     document.getElementById("change-group").classList.toggle("hidden", view !== "change");
     document.getElementById("change-orientation-group").classList.toggle("hidden", view !== "change");
     document.getElementById("explore-group").classList.toggle("hidden", view !== "explore");
@@ -2173,7 +2161,6 @@
     document.getElementById("plot_name").textContent = t.plot_name;
     document.getElementById("plot_desc").textContent = t.plot_desc;
     document.getElementById("label_year").textContent = t.label_year;
-    document.getElementById("label_topn_name").textContent = t.label_topn_name;
     document.getElementById("label_view_name").textContent = t.label_view_name;
     document.getElementById("view-ranking").textContent = t.view_ranking;
     document.getElementById("view-composition").textContent = t.view_composition;
@@ -2394,7 +2381,7 @@
 
     const rows = (totalsByYear.get(state.year) || [])
       .filter((r) => !state.uf || (municipioMeta.get(r.municipio) && municipioMeta.get(r.municipio).uf === state.uf));
-    const top = rows.slice(0, state.topN);
+    const top = rows.slice(0, TOP_N);
     const maxVal = top.length ? top[0].valor : 1;
 
     // Region-wide total only makes sense unfiltered — once a state is
@@ -2426,7 +2413,7 @@
       .filter((r) => !state.uf || (municipioMeta.get(r.municipio) && municipioMeta.get(r.municipio).uf === state.uf))
       .map((r) => ({ municipio: r.municipio, valor: r.valor }))
       .sort((a, b) => b.valor - a.valor);
-    const top = rows.slice(0, state.topN);
+    const top = rows.slice(0, TOP_N);
     const maxVal = top.length ? top[0].valor : 1;
 
     const yearTotal = rows.reduce((sum, r) => sum + r.valor, 0);
@@ -2566,7 +2553,7 @@
   // convention the municipio-orientation branches already use for a
   // uf-filtered ranking), and render.
   function renderRankingProdutoRows(t, rows, shortLabelFor, fullLabelFor) {
-    const top = rows.slice(0, state.topN);
+    const top = rows.slice(0, TOP_N);
     const maxVal = top.length ? top[0].valor : 1;
 
     if (!state.rankingScope && !state.uf) {
@@ -3244,8 +3231,7 @@
   // ---- Trends: small multiples, one sparkline per top-N municipality by
   // all-time total value (independent of the ranking view's per-year
   // top-N, since a sparkline shows the whole range at once — there's no
-  // single year to rank by). Shares the topn-select control with the
-  // ranking view. ----
+  // single year to rank by). Both use the same fixed TOP_N. ----
 
   const TREND_SPARK_W = 200, TREND_SPARK_H = 44, TREND_SPARK_PAD = 4;
 
@@ -3532,7 +3518,7 @@
         }).catch(onLazyLoadFailed);
         return;
       }
-      const produtos = topKeysByTotal(dataSource, state.topN);
+      const produtos = topKeysByTotal(dataSource, TOP_N);
       grid.innerHTML = "";
       const frag = document.createDocumentFragment();
       for (const produto of produtos) {
@@ -3553,7 +3539,7 @@
       return;
     }
 
-    const munis = computeTrendMunicipalities(state.topN, dataSource);
+    const munis = computeTrendMunicipalities(TOP_N, dataSource);
     grid.innerHTML = "";
     const frag = document.createDocumentFragment();
     for (const municipio of munis) frag.appendChild(buildTrendCard(municipio, dataSource));
