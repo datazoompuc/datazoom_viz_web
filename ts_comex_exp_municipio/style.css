@@ -196,6 +196,24 @@ html, body {
 .retry-btn:hover { background: #f6f2ea; }
 .map-loading .retry-btn { margin-top: 0; }
 
+/* Core-data failure: nothing rendered at all, so this covers the whole
+   chart area rather than sitting inside one view's panel. */
+.fatal-error {
+  position: absolute;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.fatal-error-text { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.fatal-error .retry-btn { margin-top: 0; }
+
 /* Variação replaces the sparkline/slider block (.slider-inline, ~96px
    tall) with this Ano A/B row instead — without a matching min-height,
    this row's own shorter natural height (~59px) leaves every control

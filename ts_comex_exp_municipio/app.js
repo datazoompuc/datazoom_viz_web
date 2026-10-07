@@ -49,13 +49,13 @@
       view_trends: "Tendências",
       title_trends: "Tendências por município",
       title_trends_category: "Tendências por município — {categoria}",
-      subtitle_trends: "Top municípios por valor total exportado, 1997–2025",
-      subtitle_trends_category: "Top municípios por valor exportado na categoria, 1997–2025",
+      subtitle_trends: "Top municípios por valor total exportado, {range}",
+      subtitle_trends_category: "Top municípios por valor exportado na categoria, {range}",
       label_trends_orientation: "Tendências de",
       title_trends_produtos: "Tendências por categoria",
       title_trends_produtos_scope: "Tendências por categoria — {scope}",
-      subtitle_trends_produtos: "Top categorias por valor total exportado, 1997–2025",
-      trends_hint: "Ordenado pelo valor total exportado no período (1997–2025), não pelo ano selecionado",
+      subtitle_trends_produtos: "Top categorias por valor total exportado, {range}",
+      trends_hint: "Ordenado pelo valor total exportado no período ({range}), não pelo ano selecionado",
       view_explore: "Explorar",
       title_explore: "Comparar municípios",
       title_explore_category: "Comparar municípios — {categoria}",
@@ -76,7 +76,7 @@
       explore_log_index_hint: "Não é possível combinar escala logarítmica com indexação — desmarque uma para usar a outra",
       explore_no_base: "sem exportação em {year}",
       title_composition_muni: "Composição das exportações — {municipio}",
-      subtitle_composition_muni: "Categorias de produto exportadas, 1997–2025 — passe o mouse para ver o detalhamento",
+      subtitle_composition_muni: "Categorias de produto exportadas, {range} — passe o mouse para ver o detalhamento",
       label_composition_scope: "Escopo",
       composition_scope_region: "Todos os municípios",
       label_composition_orientation: "Composição por",
@@ -174,13 +174,13 @@
       view_trends: "Trends",
       title_trends: "Trends by municipality",
       title_trends_category: "Trends by municipality — {categoria}",
-      subtitle_trends: "Top municipalities by total export value, 1997–2025",
-      subtitle_trends_category: "Top municipalities by export value in the category, 1997–2025",
+      subtitle_trends: "Top municipalities by total export value, {range}",
+      subtitle_trends_category: "Top municipalities by export value in the category, {range}",
       label_trends_orientation: "Trend by",
       title_trends_produtos: "Trends by category",
       title_trends_produtos_scope: "Trends by category — {scope}",
-      subtitle_trends_produtos: "Top categories by total export value, 1997–2025",
-      trends_hint: "Ranked by total value exported over the period (1997–2025), not by the selected year",
+      subtitle_trends_produtos: "Top categories by total export value, {range}",
+      trends_hint: "Ranked by total value exported over the period ({range}), not by the selected year",
       view_explore: "Explore",
       title_explore: "Compare municipalities",
       title_explore_category: "Compare municipalities — {categoria}",
@@ -201,7 +201,7 @@
       explore_log_index_hint: "Log scale can't be combined with indexing — uncheck one to use the other",
       explore_no_base: "no exports in {year}",
       title_composition_muni: "Export composition — {municipio}",
-      subtitle_composition_muni: "Product categories exported, 1997–2025 — hover to see the breakdown",
+      subtitle_composition_muni: "Product categories exported, {range} — hover to see the breakdown",
       label_composition_scope: "Scope",
       composition_scope_region: "All municipalities",
       label_composition_orientation: "Breakdown by",
@@ -528,9 +528,27 @@
     setView(state.view);
     document.getElementById("spinner").classList.add("hidden");
   }).catch((err) => {
+    // The core datasets failed, so there is no app to show — unlike the
+    // lazy-load failures above, there's no partially-usable view to fall
+    // back to. This used to raise an alert() telling the reader to check
+    // the console and re-run the export script, which is a message for
+    // whoever is developing this, not for someone who opened the page on
+    // datazoom.com.br. The detail stays in the console; the page itself
+    // just says it couldn't load and offers a reload.
+    //
+    // initState() never ran, so state.lang is still its default — the
+    // language has to come straight off the URL here.
     console.error("Failed to load data", err);
     document.getElementById("spinner").classList.add("hidden");
-    alert("Failed to load app data — see console. Did you run the export script and serve this folder over HTTP?");
+    const lang = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "pt";
+    const t = I18N[lang];
+    const panel = document.createElement("div");
+    panel.className = "fatal-error";
+    panel.innerHTML =
+      `<p class="fatal-error-text">${escapeHtml(t.label_load_error)}</p>` +
+      `<button type="button" class="retry-btn" id="fatal-reload">${escapeHtml(t.label_retry)}</button>`;
+    document.querySelector(".chart-wrap").appendChild(panel);
+    document.getElementById("fatal-reload").addEventListener("click", () => location.reload());
   });
 
   function fetchJson(url) {
@@ -763,6 +781,18 @@
       return categoryShortLabelFor(state.exploreAggLevel, state.exploreCategory);
     }
     return null;
+  }
+
+  // Fills the {range} placeholder a few subtitles and hints carry with the
+  // dataset's actual year span. Those strings used to spell "1997–2025" out
+  // literally, which silently went stale the moment the export script
+  // picked up a new year — everything else in the app (slider bounds, axis
+  // ticks, every computed total) already derives from dictionary.json, so
+  // the captions were the one place that could disagree with the data.
+  // Applied at the DOM-write sites rather than per-branch, so a new string
+  // only has to include the placeholder to get it.
+  function withYearRange(s) {
+    return s.replace("{range}", `${dictionary.year_inicio}–${dictionary.year_final}`);
   }
 
   // Explorar's log scale re-spaces the y-axis logarithmically but still
@@ -1220,7 +1250,7 @@
   }
 
   function fmtPct(v) {
-    return v.toLocaleString(state.lang === "en" ? "en-US" : "pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+    return v.toLocaleString(numLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
   }
 
   // Ratio mode's classification compares two *different* calculations —
@@ -2181,7 +2211,7 @@
     document.getElementById("trends-orientation-produto").textContent = t.ranking_orientation_produto;
     document.getElementById("label_trends_produto_level").textContent = t.label_agg_level;
     document.getElementById("label_trends_scope").textContent = t.label_ranking_scope;
-    document.getElementById("trends-hint").textContent = t.trends_hint;
+    document.getElementById("trends-hint").textContent = withYearRange(t.trends_hint);
     document.getElementById("label_explore_agg_level").textContent = t.label_agg_level;
     document.getElementById("label_explore_category").textContent = t.label_category;
     document.getElementById("label_explore_orientation").textContent = t.label_explore_orientation;
@@ -2196,6 +2226,12 @@
     document.getElementById("map-mode-ratio").textContent = t.map_mode_ratio;
     document.getElementById("map-hint").textContent = t.map_hint;
     document.getElementById("lang-toggle-label").textContent = t.btn_lang;
+    // index.html ships lang="pt-BR"; the toggle swaps the whole UI to
+    // English without this ever following, which leaves a screen reader
+    // pronouncing English copy with Portuguese phonetics. Set here rather
+    // than in the toggle handler so the initial ?lang=en load is covered
+    // too. Matches numLocale()'s tags.
+    document.documentElement.lang = numLocale();
 
     // Aggregation-level <option> text is language-specific, set here rather
     // than hardcoded in the HTML (same convention as the scope select's own
@@ -2286,7 +2322,7 @@
       map: t[`subtitle_map_${state.mapMode}`]
     };
     document.getElementById("plot-title").textContent = titles[state.view];
-    document.getElementById("plot-subtitle").textContent = subtitles[state.view];
+    document.getElementById("plot-subtitle").textContent = withYearRange(subtitles[state.view]);
 
     const slider = document.getElementById("year-slider");
     slider.value = state.year;
@@ -3693,7 +3729,7 @@
   function renderExplore() {
     const svg = document.getElementById("explore-svg");
     const t = I18N[state.lang];
-    document.getElementById("plot-subtitle").textContent = exploreSubtitleText(t);
+    document.getElementById("plot-subtitle").textContent = withYearRange(exploreSubtitleText(t));
     const series = buildExploreSeries();
 
     if (series === null) {
@@ -3921,19 +3957,31 @@
 
   // ---- Formatting ----
 
+  // The locale every number in the app is formatted against. PT-BR and
+  // en-US disagree on both separators (1.234.567,8 vs 1,234,567.8), so a
+  // number rendered in the wrong one is not merely styled oddly — "64,3"
+  // reads as 64.3 to one audience and as 643 (or an error) to the other.
+  // Previously only fmtPct switched on the language while fmtNumber and
+  // fmtAbbrev were pinned to pt-BR, so the same view mixed conventions.
+  function numLocale() {
+    return state.lang === "en" ? "en-US" : "pt-BR";
+  }
+
   function fmtNumber(x) {
     if (x === null || x === undefined || Number.isNaN(x)) return "";
-    return Number(x).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+    return Number(x).toLocaleString(numLocale(), { maximumFractionDigits: 0 });
   }
 
   // Abbreviated US$ value for dense displays (ranking rows, sparkline
   // tooltip, region total) — full precision is one hover away in the row
-  // tooltip. bi/mi/mil follow PT-BR convention; en labels reuse the same
-  // magnitude words since this is a bilingual number, not translated text.
+  // tooltip. The separators follow the active language (see numLocale),
+  // but the bi/mi/mil magnitude words stay as they are in both: they label
+  // a bilingual figure the way the source data presents it, rather than
+  // being UI copy to translate.
   function fmtAbbrev(x) {
     if (x === null || x === undefined || Number.isNaN(x)) return "";
     const abs = Math.abs(x);
-    const fmt1 = (v) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const fmt1 = (v) => v.toLocaleString(numLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     if (abs >= 1e9) return "US$ " + fmt1(x / 1e9) + " bi";
     if (abs >= 1e6) return "US$ " + fmt1(x / 1e6) + " mi";
     if (abs >= 1e3) return "US$ " + fmt1(x / 1e3) + " mil";
