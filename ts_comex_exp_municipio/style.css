@@ -242,6 +242,60 @@ html, body {
 }
 .sidebar-multiselect option { padding: 3px 6px; }
 
+/* ---- Searchable pickers (see comboboxify/filterify in app.js) ---- */
+
+.combo { position: relative; }
+
+/* The real <select> stays in the DOM as the model — every populate*Select()
+   still writes to it and selections are committed through it — so it is
+   hidden rather than removed. Not display:none: that would also drop it
+   from the form/accessibility tree, and it still carries the value. */
+.combo-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.combo-input { cursor: text; }
+
+/* In normal flow, not absolutely positioned: .menucol is a scroll
+   container, which would clip a floating panel opened near its bottom. */
+.combo-panel {
+  margin-top: 2px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(34, 29, 23, 0.18);
+}
+.combo-panel.hidden { display: none; }
+
+.combo-option {
+  padding: 6px 8px;
+  font-size: 0.92rem;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.combo-option:hover,
+.combo-option.active { background: #e4f0f1; }
+.combo-option[aria-selected="true"] { font-weight: 700; }
+
+.combo-empty,
+.combo-count {
+  padding: 6px 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.combo-count { border-top: 1px solid var(--border); }
+
+.listfilter { margin-bottom: 4px; font-size: 0.9rem; }
+
 .explore-hint {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.75);

@@ -110,6 +110,9 @@
       prodrank_cat_industria: "Indústria e manufaturados",
       ranking_product_total_prefix: "Total exportado no ano: ",
       label_loading: "Carregando…",
+      combo_placeholder: "Buscar…",
+      combo_no_match: "Nenhum resultado",
+      combo_count: "{n} de {total}",
       label_load_error: "Não foi possível carregar os dados.",
       label_retry: "Tentar novamente",
       view_map: "Mapa",
@@ -235,6 +238,9 @@
       prodrank_cat_industria: "Industry & manufactured goods",
       ranking_product_total_prefix: "Total exported that year: ",
       label_loading: "Loading…",
+      combo_placeholder: "Search…",
+      combo_no_match: "No matches",
+      combo_count: "{n} of {total}",
       label_load_error: "Could not load the data.",
       label_retry: "Try again",
       view_map: "Map",
@@ -522,6 +528,7 @@
 
     initState();
     initControls();
+    initSearchablePickers();
     initSparklineHover();
     initCompositionHover();
     initExploreHover();
@@ -2342,6 +2349,11 @@
     } else {
       renderRanking();
     }
+
+    // Last: the view renderers above can repopulate their own pickers
+    // (a lazily-loaded SH2 taxonomy arriving, a scope list re-filtered by
+    // state), and the comboboxes mirror those option lists.
+    syncSearchablePickers();
   }
 
   const RANKING_IDS = { rows: "ranking-rows", tooltip: "ranking-tooltip", panel: "ranking-panel" };
@@ -3952,6 +3964,255 @@
       marker.setAttribute("opacity", "1");
     } else {
       marker.setAttribute("opacity", "0");
+    }
+  }
+
+  // ---- Searchable pickers ----
+  //
+  // The município scopes carry ~450 options each and the SH2 taxonomy ~97,
+  // which a plain <select> makes genuinely hard to get through. Two shapes
+  // are needed, so there are two helpers below:
+  //
+  //   comboboxify()  — single-choice <select> becomes a type-to-filter
+  //                    combobox (the picker itself is the search field).
+  //   filterify()    — multi-select listbox keeps its Ctrl/Cmd+click
+  //                    semantics and gains a filter field above it.
+  //
+  // Both deliberately keep the original <select> as the model: it stays in
+  // the DOM, every populate*Select() still writes to it, and selections are
+  // committed by setting select.value and dispatching a real "change"
+  // event. So none of the existing option-building or change-handling code
+  // has to know these exist — they are a presentation layer over controls
+  // that still work exactly as before.
+  //
+  // The panel is laid out in normal flow rather than absolutely positioned:
+  // .menucol is itself a scroll container (overflow-y: auto), which would
+  // clip a floating panel near the bottom of the sidebar.
+
+  const comboboxes = [];
+
+  // Accent- and case-insensitive, so "belem"/"canaa" find "Belém"/"Canaã" —
+  // nobody types the diacritics when searching a long list.
+  function searchKey(s) {
+    return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+
+  function comboboxify(select) {
+    const wrap = document.createElement("div");
+    wrap.className = "combo";
+    select.parentNode.insertBefore(wrap, select);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "sidebar-field combo-input";
+    input.autocomplete = "off";
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("aria-autocomplete", "list");
+    if (select.id) {
+      input.id = select.id + "-combo";
+      // The <label for> in the HTML points at the select, which is now
+      // hidden; move the association to the control that takes focus.
+      const label = document.querySelector(`label[for="${select.id}"]`);
+      if (label) label.setAttribute("for", input.id);
+    }
+
+    const panel = document.createElement("div");
+    panel.className = "combo-panel hidden";
+    panel.setAttribute("role", "listbox");
+    if (input.id) {
+      panel.id = input.id + "-panel";
+      input.setAttribute("aria-controls", panel.id);
+    }
+
+    wrap.appendChild(input);
+    wrap.appendChild(panel);
+    wrap.appendChild(select); // keep the model inside the wrapper
+    select.classList.add("combo-native");
+
+    const entry = { select, input, panel, open: false, active: -1, matches: [] };
+    comboboxes.push(entry);
+
+    function selectedText() {
+      const o = select.options[select.selectedIndex];
+      return o ? o.textContent : "";
+    }
+
+    function close(revert) {
+      entry.open = false;
+      entry.active = -1;
+      panel.classList.add("hidden");
+      input.setAttribute("aria-expanded", "false");
+      input.removeAttribute("aria-activedescendant");
+      if (revert) input.value = selectedText();
+    }
+
+    function renderPanel(query) {
+      const q = searchKey(query);
+      // An empty box lists everything, so clicking the field still works as
+      // a plain dropdown for anyone who would rather browse than type.
+      entry.matches = Array.from(select.options)
+        .filter((o) => !q || searchKey(o.textContent).includes(q));
+      panel.innerHTML = "";
+      if (!entry.matches.length) {
+        const empty = document.createElement("div");
+        empty.className = "combo-empty";
+        empty.textContent = I18N[state.lang].combo_no_match;
+        panel.appendChild(empty);
+        return;
+      }
+      entry.matches.forEach((o, i) => {
+        const el = document.createElement("div");
+        el.className = "combo-option" + (i === entry.active ? " active" : "");
+        el.id = `${panel.id}-opt-${i}`;
+        el.setAttribute("role", "option");
+        el.setAttribute("aria-selected", String(o.value === select.value));
+        el.textContent = o.textContent;
+        el.title = o.textContent;
+        // mousedown, not click: the input's blur would otherwise close the
+        // panel and remove this element before a click could land on it.
+        el.addEventListener("mousedown", (ev) => { ev.preventDefault(); commit(i); });
+        panel.appendChild(el);
+      });
+      if (entry.matches.length < select.options.length) {
+        const count = document.createElement("div");
+        count.className = "combo-count";
+        count.textContent = I18N[state.lang].combo_count
+          .replace("{n}", entry.matches.length)
+          .replace("{total}", select.options.length);
+        panel.appendChild(count);
+      }
+    }
+
+    function highlight(i) {
+      entry.active = i;
+      const opts = panel.querySelectorAll(".combo-option");
+      opts.forEach((el, j) => el.classList.toggle("active", j === i));
+      if (i >= 0 && opts[i]) {
+        opts[i].scrollIntoView({ block: "nearest" });
+        input.setAttribute("aria-activedescendant", opts[i].id);
+      }
+    }
+
+    function open() {
+      entry.open = true;
+      panel.classList.remove("hidden");
+      input.setAttribute("aria-expanded", "true");
+      renderPanel("");
+      const cur = entry.matches.findIndex((o) => o.value === select.value);
+      highlight(cur >= 0 ? cur : -1);
+      if (cur >= 0) {
+        const el = panel.querySelectorAll(".combo-option")[cur];
+        if (el) el.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function commit(i) {
+      const opt = entry.matches[i];
+      if (!opt) return;
+      select.value = opt.value;
+      input.value = opt.textContent;
+      close(false);
+      // Hand off to whatever already listened to this select.
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    input.addEventListener("focus", () => { if (!entry.open) open(); input.select(); });
+    input.addEventListener("mousedown", () => { if (!entry.open) setTimeout(open, 0); });
+
+    input.addEventListener("input", () => {
+      if (!entry.open) { entry.open = true; panel.classList.remove("hidden"); input.setAttribute("aria-expanded", "true"); }
+      renderPanel(input.value);
+      highlight(entry.matches.length ? 0 : -1);
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (!entry.open) { open(); return; }
+        if (!entry.matches.length) return;
+        const d = e.key === "ArrowDown" ? 1 : -1;
+        highlight((entry.active + d + entry.matches.length) % entry.matches.length);
+      } else if (e.key === "Enter") {
+        if (entry.open && entry.active >= 0) { e.preventDefault(); commit(entry.active); }
+      } else if (e.key === "Escape") {
+        if (entry.open) { e.preventDefault(); close(true); }
+      } else if (e.key === "Tab") {
+        if (entry.open) close(true);
+      }
+    });
+
+    // Typed text that was never committed must not linger as if it were the
+    // current selection.
+    input.addEventListener("blur", () => { if (entry.open) close(true); });
+
+    input.value = selectedText();
+  }
+
+  // Keeps a multi-select's own listbox (and its Ctrl/Cmd+click multi-pick)
+  // and puts a filter above it that hides non-matching options. Options
+  // already selected are never hidden, so a filter can't make part of the
+  // current selection invisible — and therefore look lost — while the user
+  // narrows the list to add something else.
+  function filterify(select) {
+    const wrap = document.createElement("div");
+    wrap.className = "listfilter-wrap";
+    select.parentNode.insertBefore(wrap, select);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "sidebar-field listfilter";
+    input.autocomplete = "off";
+    if (select.id) input.id = select.id + "-filter";
+
+    wrap.appendChild(input);
+    wrap.appendChild(select);
+
+    function apply() {
+      const q = searchKey(input.value);
+      for (const o of select.options) {
+        o.hidden = !!q && !o.selected && !searchKey(o.textContent).includes(q);
+      }
+    }
+    input.addEventListener("input", apply);
+    comboboxes.push({ select, input, filterOnly: true, apply });
+  }
+
+  // populate*Select() rebuilds options on every render, which can change
+  // both the selected value and the option labels (language switch). The
+  // combobox mirrors that text, so it has to be re-read afterwards.
+  function syncSearchablePickers() {
+    for (const c of comboboxes) {
+      if (c.filterOnly) {
+        c.input.placeholder = I18N[state.lang].combo_placeholder;
+        c.apply();
+        continue;
+      }
+      if (document.activeElement === c.input) continue; // mid-typing; don't yank it
+      const o = c.select.options[c.select.selectedIndex];
+      c.input.value = o ? o.textContent : "";
+      c.input.placeholder = I18N[state.lang].combo_placeholder;
+    }
+  }
+
+  // Long pickers only. The state/aggregation/top-N selects are short enough
+  // to scan, and the SH4 product picker already has its own search field.
+  const COMBOBOX_SELECT_IDS = [
+    "change-scope-select", "composition-scope-select", "ranking-scope-select",
+    "trends-scope-select", "explore-scope-select",
+    "change-category-select", "composition-produto-select",
+    "ranking-category-select", "trends-category-select", "explore-category-select"
+  ];
+  const FILTER_SELECT_IDS = ["explore-munis-select", "explore-produtos-select"];
+
+  function initSearchablePickers() {
+    for (const id of COMBOBOX_SELECT_IDS) {
+      const el = document.getElementById(id);
+      if (el) comboboxify(el);
+    }
+    for (const id of FILTER_SELECT_IDS) {
+      const el = document.getElementById(id);
+      if (el) filterify(el);
     }
   }
 
