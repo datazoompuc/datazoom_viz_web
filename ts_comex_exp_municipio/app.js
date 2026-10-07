@@ -766,12 +766,22 @@
   }
 
   // Whatever's currently narrowing Ranking, across all three filterable
-  // tiers, as a short display label for the title — or null when
+  // tiers, as a display label for the title — or null when
   // "Todos os produtos" applies and the title should stay generic.
+  //
+  // This and the four current*Label() helpers below deliberately use the
+  // FULL category/product name, not the clause-clipped categoryShortLabelFor
+  // version the sidebar pickers and chart legends use. Those are in tight
+  // fixed-width slots where an ellipsis is the right trade; a title has the
+  // width of the whole content column and is the one place that should say
+  // exactly which product is being shown, even when that wraps to several
+  // lines. Each of these feeds a title only — the two subtitles that
+  // mention them just test them for null, so lengthening them here has no
+  // effect there.
   function currentRankingFilterLabel() {
-    if (state.rankingAggLevel === "sh4" && state.rankingProduct) return rankingProductShortLabel(state.rankingProduct);
+    if (state.rankingAggLevel === "sh4" && state.rankingProduct) return rankingProductLabel(state.rankingProduct);
     if ((state.rankingAggLevel === "sec" || state.rankingAggLevel === "sh2") && state.rankingCategory) {
-      return categoryShortLabelFor(state.rankingAggLevel, state.rankingCategory);
+      return categoryLabelFor(state.rankingAggLevel, state.rankingCategory);
     }
     return null;
   }
@@ -779,7 +789,7 @@
   // Same idea for Tendências' category filter (no SH4 tier there).
   function currentTrendsFilterLabel() {
     if ((state.trendsAggLevel === "sec" || state.trendsAggLevel === "sh2") && state.trendsCategory) {
-      return categoryShortLabelFor(state.trendsAggLevel, state.trendsCategory);
+      return categoryLabelFor(state.trendsAggLevel, state.trendsCategory);
     }
     return null;
   }
@@ -787,7 +797,7 @@
   // Same idea for Explorar's category filter.
   function currentExploreFilterLabel() {
     if ((state.exploreAggLevel === "sec" || state.exploreAggLevel === "sh2") && state.exploreCategory) {
-      return categoryShortLabelFor(state.exploreAggLevel, state.exploreCategory);
+      return categoryLabelFor(state.exploreAggLevel, state.exploreCategory);
     }
     return null;
   }
@@ -828,7 +838,7 @@
   // generic title_composition_estado_base instead of interpolating "null".
   function currentCompositionProdutoLabel() {
     if (state.compositionOrientation === "estado" && state.compositionProduto) {
-      return categoryShortLabelFor(state.compositionAgg, state.compositionProduto);
+      return categoryLabelFor(state.compositionAgg, state.compositionProduto);
     }
     return null;
   }
@@ -836,7 +846,7 @@
   // Same idea for Variação's municipio-orientation category filter.
   function currentChangeFilterLabel() {
     if (state.changeOrientation === "municipio" && (state.changeAggLevel === "sec" || state.changeAggLevel === "sh2") && state.changeCategory) {
-      return categoryShortLabelFor(state.changeAggLevel, state.changeCategory);
+      return categoryLabelFor(state.changeAggLevel, state.changeCategory);
     }
     return null;
   }

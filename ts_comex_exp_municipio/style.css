@@ -453,6 +453,11 @@ html, body {
 .plot-title,
 .plot-subtitle {
   padding-right: 140px;
+  /* A filtered title carries the product's full name and can run to
+     several lines. .plotcol is a flex column, so without this these would
+     be shrinkable and a long title could be squeezed by the chart below
+     instead of taking the room it needs. */
+  flex-shrink: 0;
 }
 
 .plot-title {
