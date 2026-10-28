@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Zoom Amazônia — IBGE CEMPRE</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="apppanel">
+  <div class="menucol">
+    <h2 class="plot_name" id="plot_name"></h2>
+    <p class="plot_desc" id="plot_desc"></p>
+    <hr>
+    <p class="vars" id="label_var_name"></p>
+    <div class="var_selec_group">
+      <label id="label_x_name" for="x-select"></label>
+      <select id="x-select"></select>
+    </div>
+    <div class="var_selec_group slider-inline">
+      <label id="label_year" for="year-slider"></label>
+      <div class="sparkline-wrap">
+        <svg id="year-sparkline" viewBox="0 0 260 40" preserveAspectRatio="none">
+          <path id="spark-area" class="spark-area"></path>
+          <path id="spark-line" class="spark-line"></path>
+          <line id="spark-guide" class="spark-guide" y1="0" y2="40"></line>
+          <line id="spark-hover-line" class="spark-hover-line" y1="0" y2="40"></line>
+          <circle id="spark-marker" class="spark-marker" r="4"></circle>
+          <circle id="spark-hover-marker" class="spark-hover-marker" r="4"></circle>
+          <line id="spark-guide-a" class="spark-guide-compare" y1="0" y2="40"></line>
+          <line id="spark-guide-b" class="spark-guide-compare" y1="0" y2="40"></line>
+          <circle id="spark-marker-a" class="spark-marker-compare spark-marker-a" r="5"></circle>
+          <circle id="spark-marker-b" class="spark-marker-compare spark-marker-b" r="5"></circle>
+        </svg>
+        <div id="spark-tooltip" class="spark-tooltip"></div>
+      </div>
+      <div class="slider-row">
+        <button id="play-btn" class="icon-btn" title="Play/Pause">
+          <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        </button>
+        <input type="range" id="year-slider" step="1">
+        <span id="year-value" class="year-value"></span>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <button id="compare-toggle" class="btn-primary">
+      <span class="icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18"></path></svg>
+      </span> <span id="compare-toggle-label"></span>
+    </button>
+    <div style="height: 6px;"></div>
+    <button id="snapshot-btn" class="btn-primary">
+      <span class="icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+      </span> <span id="snapshot-btn-label"></span>
+    </button>
+    <div class="menucol-logo" role="img" aria-label="Data Zoom"></div>
+  </div>
+  <div class="plotcol">
+    <button id="lang-toggle" class="lang-toggle-corner">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+      <span id="lang-toggle-label"></span>
+    </button>
+    <div class="plot-title" id="plot-title"></div>
+    <div class="plot-subtitle" id="plot-subtitle"></div>
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div id="spinner" class="spinner"></div>
+      <div id="compare-panel" class="compare-panel">
+        <div class="compare-panel-bar">
+          <div class="compare-state-filter">
+            <label id="label_compare_state" for="compare-state-select"></label>
+            <select id="compare-state-select"></select>
+          </div>
+          <div class="compare-legend">
+            <span class="compare-legend-chip"><span class="compare-legend-dot compare-legend-dot-a"></span><span id="compare-legend-a-label"></span></span>
+            <span class="compare-legend-chip"><span class="compare-legend-dot compare-legend-dot-b"></span><span id="compare-legend-b-label"></span></span>
+          </div>
+        </div>
+        <div class="dumbbell-axis">
+          <div class="dumbbell-col-label"></div>
+          <div class="dumbbell-col-track">
+            <span id="dumbbell-axis-min"></span>
+            <span id="dumbbell-axis-max"></span>
+          </div>
+          <div class="dumbbell-col-delta"></div>
+        </div>
+        <div class="dumbbell-scroll">
+          <div id="dumbbell-rows"></div>
+        </div>
+        <div id="dumbbell-note" class="dumbbell-note hidden"></div>
+        <div id="dumbbell-tooltip" class="dumbbell-tooltip"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

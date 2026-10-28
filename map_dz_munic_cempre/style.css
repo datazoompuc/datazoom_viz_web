@@ -1,0 +1,644 @@
+* { box-sizing: border-box; }
+
+:root {
+  /* Warm, slightly-off-black/gray ink instead of generic #222/#555 — reads
+     as a deliberate choice for this brand rather than a browser-default
+     gray, independent of whichever hue the choropleth ramp uses. */
+  --ink: #221d17;
+  --muted: #6b6156;
+  --border: #e4ded3;
+  --shadow: rgba(34, 29, 23, 0.12);
+  --legend-accent: #a63c89; /* mid-tone step of PALETTE_CONTINUOUS (app.js) */
+  --sidebar-a: #50A486;
+  --sidebar-b: #2f6e5c;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  /* Base size for every rem-sized element in this file — bumped from
+     0.875rem (14px) since the whole app read small on an average screen. */
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.apppanel {
+  display: flex;
+  height: 100vh;
+}
+
+/* Language toggle lives in the upper-right corner of the main content
+   column (a conventional spot for it) rather than grouped with the
+   sidebar's action buttons. Anchored to .plotcol, not the viewport, so it
+   sits relative to the content it labels instead of the raw window edge —
+   .plot-title/.plot-subtitle reserve space on their right so long text
+   wraps instead of running underneath it. */
+.lang-toggle-corner {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--ink);
+  padding: 7px 14px;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px var(--shadow);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  cursor: pointer;
+}
+.lang-toggle-corner svg { display: block; }
+.lang-toggle-corner:hover { background: #f6f2ea; }
+
+/* ---- Sidebar ---- */
+
+.menucol {
+  flex: 0 0 300px;
+  /* A gradient instead of a flat fill — brand green at the top settling
+     into the deeper green already used for the "active" button state, so
+     the sidebar reads as one panel with depth rather than a poster-flat
+     color block. */
+  background: linear-gradient(165deg, var(--sidebar-a), var(--sidebar-b));
+  color: #fff;
+  padding: 20px;
+  overflow-y: auto;
+  /* Flex column so .menucol-logo can pin to the bottom via margin-top:auto
+     — same approach the original Shiny app uses for its logo placement
+     (global/dza_lumen.css's .menucol::after). */
+  display: flex;
+  flex-direction: column;
+}
+
+.menucol-logo {
+  margin-top: auto;
+  padding-top: 24px;
+  height: 64px;
+  background-image: url("img/logo_datazoom_branco_horizontal.png");
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: contain;
+  pointer-events: none;
+  opacity: 0.95;
+  flex: 0 0 auto;
+}
+
+.plot_name {
+  margin: 0 0 4px;
+  /* JetBrains Mono, uppercase, tight tracking — the original Shiny app's
+     .plot_name/#plot_title treatment (global/dza_lumen.css). Reused as-is
+     rather than a new typeface, so this brand name still reads as *the*
+     Data Zoom brand mark, not a redesign of it. Controls and body copy
+     stay on Source Sans Pro. */
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 1.4rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: #fff;
+}
+
+.plot_desc {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #eafff5;
+}
+
+.menucol hr {
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.35);
+  margin: 16px 0;
+}
+
+.vars {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.var_selec_group {
+  margin-bottom: 16px;
+}
+
+.var_selec_group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 400;
+}
+
+#x-select {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  font-size: 0.875rem;
+  background: #fff;
+  color: var(--ink);
+}
+
+.sparkline-wrap {
+  margin-bottom: 4px;
+  position: relative; /* anchors .spark-tooltip */
+}
+
+#year-sparkline {
+  width: 100%;
+  height: 40px;
+  display: block;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.spark-area {
+  /* No neutral "chart surface" here — the sparkline sits directly on the
+     brand-green sidebar, so the area wash is white-on-green rather than
+     the series' own hue (which is effectively white/ink in this context). */
+  fill: rgba(255, 255, 255, 0.14);
+  stroke: none;
+}
+
+.spark-line {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2; /* dataviz skill mark spec: line = 2px */
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Persistent indicator for the currently selected year. */
+.spark-guide {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Transient crosshair that tracks the pointer on hover — shown/hidden via
+   opacity in app.js, separate from .spark-guide (the selection marker). */
+.spark-hover-line {
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.spark-marker {
+  fill: #fff;
+  /* 2px ring in the surface color (the sidebar green) — separates the
+     marker from the line passing behind it without drawing a border. */
+  stroke: #50A486;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  transition: cx 150ms linear, cy 250ms ease;
+}
+
+.spark-hover-marker {
+  fill: #fff;
+  stroke: #50A486;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Compare mode swaps the single year marker/guide for two draggable ones.
+   Year A / year B are an identity pair (which side, not a magnitude), so
+   they take the dataviz skill's categorical slots 1/2 (blue/orange) rather
+   than another green — distinct from both the sequential ramp and each
+   other, and already validated (documented default, ΔE 9.1 light).
+   One "compare-mode" class on .apppanel gates every compare-only element
+   below, rather than toggling a class per element in app.js. */
+.spark-marker-compare, .spark-guide-compare { display: none; }
+.apppanel.compare-mode .spark-marker-compare,
+.apppanel.compare-mode .spark-guide-compare {
+  display: block;
+}
+.apppanel.compare-mode .spark-marker,
+.apppanel.compare-mode .spark-guide {
+  display: none;
+}
+
+.spark-guide-compare {
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+#spark-guide-a { stroke: rgba(42, 120, 214, 0.7); }
+#spark-guide-b { stroke: rgba(235, 104, 52, 0.75); }
+
+.spark-marker-compare {
+  fill: #fff;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+  cursor: ew-resize;
+}
+.spark-marker-a { stroke: #2a78d6; }
+.spark-marker-b { stroke: #eb6834; }
+
+.spark-tooltip {
+  position: absolute;
+  top: -4px;
+  transform: translate(-50%, -100%);
+  background: #1f3b32;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.3;
+  padding: 4px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  font-variant-numeric: tabular-nums;
+}
+.spark-tooltip strong {
+  font-weight: 700;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.apppanel.compare-mode .slider-row { display: none; }
+
+#year-slider {
+  flex: 1 1 auto;
+  accent-color: #48968B;
+}
+
+.year-value {
+  min-width: 3em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.icon-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn:hover { background: rgba(255, 255, 255, 0.35); }
+.icon-btn.playing { background: #48968B; }
+
+.spacer { height: 6px; }
+
+.btn-primary {
+  background-color: #48968B;
+  border: 1px solid #48968B;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Icons are inline SVG (Feather Icons, MIT) rather than emoji — renders
+   identically across OS/browsers instead of depending on whatever emoji
+   font each platform ships, and stroke="currentColor" in the markup means
+   they already pick up each button's text color for free. */
+.icon-btn svg, .btn-primary .icon svg { display: block; }
+.btn-primary:hover { background-color: #3d827a; }
+.btn-primary.active { background-color: #2f6e5c; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5); }
+.btn-primary:disabled { opacity: 0.6; cursor: default; }
+.btn-primary:disabled:hover { background-color: #48968B; }
+
+/* ---- Map column ---- */
+
+.plotcol {
+  position: relative; /* anchors .lang-toggle-corner */
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  min-width: 0;
+}
+
+.plot-title,
+.plot-subtitle {
+  /* Reserves room for .lang-toggle-corner so a long title/subtitle wraps
+     before it rather than running underneath the pill. */
+  padding-right: 140px;
+}
+
+.plot-title {
+  /* Same treatment as .plot_name (JetBrains Mono, uppercase, tight
+     tracking) — matches the original Shiny app's #plot_title. */
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 1.1rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+}
+
+.plot-subtitle {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.map-wrap {
+  position: relative;
+  flex: 1 1 auto;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  /* A card, not a same-white-as-background rectangle: a border plus a soft
+     shadow separates the map from the page instead of relying on
+     border-radius alone. */
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 12px var(--shadow);
+}
+
+.spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 4px solid rgba(65, 135, 140, 0.2);
+  border-top-color: #41878C;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  pointer-events: none;
+  z-index: 1000;
+}
+.spinner.hidden { display: none; }
+
+/* Falha ao carregar os dados principais: não há mapa nenhum, então cobre a
+   área toda. Portado do app de COMEX, mesma convenção visual. */
+.fatal-error {
+  position: absolute;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.fatal-error-text { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+.retry-btn {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.retry-btn:hover { background: #f6f2ea; }
+
+/* Erro ao gerar a imagem: aparece no próprio botão por alguns segundos,
+   em vez de um alert() que trava a página inteira. */
+.snapshot-error { opacity: 1 !important; }
+.snapshot-error #snapshot-btn-label { font-size: 0.78rem; line-height: 1.2; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Compare-years: a ranked dumbbell chart (year A vs year B dots per
+   municipality, connected by a line, sorted by change) rather than two
+   side-by-side maps. With 700+ municipalities in the Legal Amazon a single
+   ranked list isn't readable at a glance, so it's filtered to one state at
+   a time (compare-state-select) — from 15 municipalities (RR) to 181 (MA),
+   always a manageable, scrollable list. The map is strong at "where did
+   this happen"; the dumbbell chart is strong at "who changed the most,"
+   which a color-coded map can't rank. ---- */
+
+.compare-panel { display: none; }
+.apppanel.compare-mode .compare-panel { display: flex; }
+.apppanel.compare-mode #map { display: none; }
+
+.compare-panel {
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 12px var(--shadow);
+  overflow: hidden;
+}
+
+.compare-panel-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.compare-state-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+.compare-state-filter select {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  font-size: 0.85rem;
+  background: #fff;
+  color: var(--ink);
+}
+
+.compare-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.compare-legend-chip { display: flex; align-items: center; gap: 6px; }
+.compare-legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.compare-legend-dot-a { background: #2a78d6; }
+.compare-legend-dot-b { background: #eb6834; }
+
+/* Shared row grid — the axis header and every data row use the same three
+   columns (label / track / delta) so the min/max ticks line up exactly
+   above the dots they describe. */
+.dumbbell-axis,
+.dumbbell-row {
+  display: flex;
+  align-items: center;
+}
+.dumbbell-axis {
+  flex: 0 0 auto;
+  padding: 8px 0 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.dumbbell-row { height: 22px; }
+.dumbbell-row:hover { background: rgba(80, 164, 134, 0.08); }
+
+.dumbbell-col-label {
+  flex: 0 0 170px;
+  padding: 0 10px 0 14px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+.dumbbell-col-track {
+  flex: 1 1 auto;
+  position: relative;
+  height: 22px;
+}
+.dumbbell-axis .dumbbell-col-track {
+  height: auto;
+  display: flex;
+  justify-content: space-between;
+}
+.dumbbell-col-delta {
+  flex: 0 0 84px;
+  padding: 0 14px 0 8px;
+  text-align: right;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.dumbbell-scroll { flex: 1 1 auto; overflow-y: auto; }
+#dumbbell-rows { display: flex; flex-direction: column; }
+
+.dumbbell-line {
+  position: absolute;
+  top: 50%;
+  height: 2px; /* dataviz skill mark spec: line = 2px */
+  background: #c7c7c7;
+  transform: translateY(-50%);
+}
+.dumbbell-dot {
+  position: absolute;
+  top: 50%;
+  width: 10px; /* dataviz skill mark spec: markers >= 8px */
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1.5px #fff; /* separates overlapping dots from the line/each other without a border */
+}
+/* Year A / year B are an identity pair (which side, not a magnitude) —
+   same categorical blue/orange slots used by the sparkline's compare
+   markers, so the color meaning is consistent across the whole app. */
+.dumbbell-dot-a { background: #2a78d6; }
+.dumbbell-dot-b { background: #eb6834; }
+
+.dumbbell-note {
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.dumbbell-note.hidden { display: none; }
+
+.dumbbell-tooltip {
+  position: absolute;
+  background: #1f3b32;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.35;
+  padding: 6px 9px;
+  border-radius: 5px;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* ---- Leaflet legend ---- */
+
+.legend {
+  background: #fff;
+  padding: 10px 12px 8px;
+  border-radius: 2px 2px 8px 8px;
+  /* Thin accent edge in the ramp's own mid-tone, rather than a plain
+     rectangle — ties the legend visually to the choropleth it explains. */
+  border-top: 3px solid var(--legend-accent);
+  box-shadow: 0 4px 14px var(--shadow);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  max-width: 220px;
+  color: var(--ink);
+}
+.legend .legend-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.legend .legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.legend .swatch {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* Matches the SVG hatch pattern used for "no data" polygons on the map
+   (ensureNoDataPattern in app.js) — same base/line colors, same 45deg
+   angle, so the legend swatch and the map fill read as the same thing. */
+.legend .swatch-nodata {
+  background-color: #deeaef;
+  background-image: repeating-linear-gradient(
+    45deg,
+    #a2adb1 0, #a2adb1 1.5px,
+    transparent 1.5px, transparent 6px
+  );
+}
+
+.leaflet-tooltip b { color: inherit; }
+
+/* Municipality fill animates between years instead of jump-cutting.
+   Works because Leaflet's SVG renderer sets `fill`/`fill-opacity` as
+   presentation attributes via setAttribute — browsers still animate
+   those under a CSS transition as long as nothing sets an inline
+   style with higher precedence. */
+.muni-path {
+  /* Kept comfortably under PLAY_INTERVAL_MS (app.js) so each year's fill
+     settles before autoplay advances to the next. */
+  transition: fill 300ms ease, fill-opacity 180ms ease;
+}

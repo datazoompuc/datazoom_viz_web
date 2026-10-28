@@ -1,0 +1,48 @@
+{
+  "pt": [
+    {
+      "var": "cempre_n_empresas_organizacoes",
+      "label": "Número de empresas e outras organizações",
+      "unidade": "Estabelecimentos"
+    },
+    {
+      "var": "cempre_n_ocupados",
+      "label": "Número de pessoas ocupadas",
+      "unidade": "Pessoas"
+    },
+    {
+      "var": "cempre_n_ocupados_assalariados",
+      "label": "Número de pessoas ocupadas assalariadas",
+      "unidade": "Pessoas"
+    },
+    {
+      "var": "cempre_salarios_remuneracoes",
+      "label": "Salários e outras remunerações",
+      "unidade": "R$"
+    }
+  ],
+  "en": [
+    {
+      "var": "cempre_n_empresas_organizacoes",
+      "label": "Number of companies and other organizations",
+      "unidade": "Establishments"
+    },
+    {
+      "var": "cempre_n_ocupados",
+      "label": "Employed persons",
+      "unidade": "People"
+    },
+    {
+      "var": "cempre_n_ocupados_assalariados",
+      "label": "Employed paid persons",
+      "unidade": "People"
+    },
+    {
+      "var": "cempre_salarios_remuneracoes",
+      "label": "Wages",
+      "unidade": "R$"
+    }
+  ],
+  "year_inicio": 2006,
+  "year_final": 2020
+}
