@@ -47,6 +47,7 @@
           <svg id="year-sparkline" viewBox="0 0 260 40" preserveAspectRatio="none">
             <path id="spark-area" class="spark-area"></path>
             <path id="spark-line" class="spark-line"></path>
+            <path id="spark-line-partial" class="spark-line spark-line-partial"></path>
             <line id="spark-guide" class="spark-guide" y1="0" y2="40"></line>
             <line id="spark-hover-line" class="spark-hover-line" y1="0" y2="40"></line>
             <circle id="spark-marker" class="spark-marker" r="4"></circle>
@@ -63,6 +64,7 @@
         <span class="year-caption">
           <label id="label_year" for="year-slider"></label>
           <span id="year-value" class="year-value"></span>
+          <span id="year-partial" class="year-partial hidden"></span>
         </span>
       </div>
     </div>
@@ -81,6 +83,7 @@
       <div class="view-toggle" id="change-orientation-toggle">
         <button class="view-btn active" id="change-orientation-municipio" data-orientation="municipio"></button>
         <button class="view-btn" id="change-orientation-produto" data-orientation="produto"></button>
+        <button class="view-btn" id="change-orientation-pais" data-orientation="pais"></button>
       </div>
       <div class="spacer"></div>
 
@@ -99,12 +102,14 @@
       </div>
 
       <div id="change-by-produto-group" class="hidden">
+        <div id="change-produto-level-wrap">
         <label id="label_change_produto_level" for="change-produto-level-select"></label>
         <select id="change-produto-level-select" class="sidebar-field">
           <option value="sec"></option>
           <option value="sh2"></option>
         </select>
         <div class="spacer"></div>
+        </div>
         <label id="label_change_scope" for="change-scope-select"></label>
         <select id="change-scope-select" class="sidebar-field"></select>
       </div>
@@ -141,6 +146,7 @@
       <div class="view-toggle" id="ranking-orientation-toggle">
         <button class="view-btn active" id="ranking-orientation-municipio" data-orientation="municipio"></button>
         <button class="view-btn" id="ranking-orientation-produto" data-orientation="produto"></button>
+        <button class="view-btn" id="ranking-orientation-pais" data-orientation="pais"></button>
       </div>
       <div class="spacer"></div>
 
@@ -171,6 +177,7 @@
       </div>
 
       <div id="ranking-by-produto-group" class="hidden">
+        <div id="ranking-produto-level-wrap">
         <label id="label_ranking_produto_level" for="ranking-produto-level-select"></label>
         <select id="ranking-produto-level-select" class="sidebar-field">
           <option value="sec"></option>
@@ -178,6 +185,7 @@
           <option value="sh4"></option>
         </select>
         <div class="spacer"></div>
+        </div>
         <label id="label_ranking_scope" for="ranking-scope-select"></label>
         <select id="ranking-scope-select" class="sidebar-field"></select>
       </div>
@@ -188,6 +196,7 @@
       <div class="view-toggle" id="trends-orientation-toggle">
         <button class="view-btn active" id="trends-orientation-municipio" data-orientation="municipio"></button>
         <button class="view-btn" id="trends-orientation-produto" data-orientation="produto"></button>
+        <button class="view-btn" id="trends-orientation-pais" data-orientation="pais"></button>
       </div>
       <div class="spacer"></div>
 
@@ -206,12 +215,14 @@
       </div>
 
       <div id="trends-by-produto-group" class="hidden">
+        <div id="trends-produto-level-wrap">
         <label id="label_trends_produto_level" for="trends-produto-level-select"></label>
         <select id="trends-produto-level-select" class="sidebar-field">
           <option value="sec"></option>
           <option value="sh2"></option>
         </select>
         <div class="spacer"></div>
+        </div>
         <label id="label_trends_scope" for="trends-scope-select"></label>
         <select id="trends-scope-select" class="sidebar-field"></select>
       </div>
@@ -225,6 +236,7 @@
       <div class="view-toggle" id="explore-orientation-toggle">
         <button class="view-btn active" id="explore-orientation-municipio" data-orientation="municipio"></button>
         <button class="view-btn" id="explore-orientation-produto" data-orientation="produto"></button>
+        <button class="view-btn" id="explore-orientation-pais" data-orientation="pais"></button>
       </div>
       <div class="spacer"></div>
 
@@ -248,12 +260,14 @@
       </div>
 
       <div id="explore-by-produto-group" class="hidden">
+        <div id="explore-produto-level-wrap">
         <label id="label_explore_produto_level" for="explore-produto-level-select"></label>
         <select id="explore-produto-level-select" class="sidebar-field">
           <option value="sec"></option>
           <option value="sh2"></option>
         </select>
         <div class="spacer"></div>
+        </div>
         <label id="label_explore_scope" for="explore-scope-select"></label>
         <select id="explore-scope-select" class="sidebar-field"></select>
         <div class="spacer"></div>

@@ -412,6 +412,28 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Aviso de ano parcial ao lado do "Ano 20xx". Discreto de propósito: é
+   ressalva, não alarme, e some por completo nos anos fechados. */
+.year-partial {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+.year-partial.hidden { display: none; }
+
+/* Trecho da sparkline que cai num ano incompleto. Tracejado para o
+   desenho não afirmar uma queda que é só calendário. */
+.spark-line-partial {
+  stroke-dasharray: 3 2;
+  opacity: 0.85;
+}
+
+/* Mesmo tratamento nas linhas do Explorar. */
+.explore-line-partial {
+  stroke-dasharray: 5 3;
+  opacity: 0.85;
+}
+
 .icon-btn {
   border: none;
   background: rgba(255, 255, 255, 0.2);

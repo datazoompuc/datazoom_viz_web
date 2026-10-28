@@ -1,0 +1,1902 @@
+{
+  "pt": [
+    {
+      "var": "Afeganistão",
+      "label": "Afeganistão"
+    },
+    {
+      "var": "Aland, Ilhas",
+      "label": "Aland, Ilhas"
+    },
+    {
+      "var": "Albânia",
+      "label": "Albânia"
+    },
+    {
+      "var": "Alemanha",
+      "label": "Alemanha"
+    },
+    {
+      "var": "Andorra",
+      "label": "Andorra"
+    },
+    {
+      "var": "Angola",
+      "label": "Angola"
+    },
+    {
+      "var": "Anguilla",
+      "label": "Anguilla"
+    },
+    {
+      "var": "Antilhas Holandesas",
+      "label": "Antilhas Holandesas"
+    },
+    {
+      "var": "Antártica",
+      "label": "Antártica"
+    },
+    {
+      "var": "Antígua e Barbuda",
+      "label": "Antígua e Barbuda"
+    },
+    {
+      "var": "Argentina",
+      "label": "Argentina"
+    },
+    {
+      "var": "Argélia",
+      "label": "Argélia"
+    },
+    {
+      "var": "Armênia",
+      "label": "Armênia"
+    },
+    {
+      "var": "Aruba",
+      "label": "Aruba"
+    },
+    {
+      "var": "Arábia Saudita",
+      "label": "Arábia Saudita"
+    },
+    {
+      "var": "Austrália",
+      "label": "Austrália"
+    },
+    {
+      "var": "Azerbaijão",
+      "label": "Azerbaijão"
+    },
+    {
+      "var": "Bahamas",
+      "label": "Bahamas"
+    },
+    {
+      "var": "Bangladesh",
+      "label": "Bangladesh"
+    },
+    {
+      "var": "Barbados",
+      "label": "Barbados"
+    },
+    {
+      "var": "Barein",
+      "label": "Barein"
+    },
+    {
+      "var": "Belarus",
+      "label": "Belarus"
+    },
+    {
+      "var": "Belize",
+      "label": "Belize"
+    },
+    {
+      "var": "Benin",
+      "label": "Benin"
+    },
+    {
+      "var": "Bermudas",
+      "label": "Bermudas"
+    },
+    {
+      "var": "Bolívia",
+      "label": "Bolívia"
+    },
+    {
+      "var": "Bonaire, Saint Eustatius e Saba",
+      "label": "Bonaire, Saint Eustatius e Saba"
+    },
+    {
+      "var": "Botsuana",
+      "label": "Botsuana"
+    },
+    {
+      "var": "Bouvet, Ilha",
+      "label": "Bouvet, Ilha"
+    },
+    {
+      "var": "Brasil",
+      "label": "Brasil"
+    },
+    {
+      "var": "Brunei",
+      "label": "Brunei"
+    },
+    {
+      "var": "Bulgária",
+      "label": "Bulgária"
+    },
+    {
+      "var": "Burkina Faso",
+      "label": "Burkina Faso"
+    },
+    {
+      "var": "Bélgica",
+      "label": "Bélgica"
+    },
+    {
+      "var": "Bósnia-Herzegovina",
+      "label": "Bósnia-Herzegovina"
+    },
+    {
+      "var": "Cabo Verde",
+      "label": "Cabo Verde"
+    },
+    {
+      "var": "Camarões",
+      "label": "Camarões"
+    },
+    {
+      "var": "Camboja",
+      "label": "Camboja"
+    },
+    {
+      "var": "Canadá",
+      "label": "Canadá"
+    },
+    {
+      "var": "Canal, Ilhas do (Guernsey)",
+      "label": "Canal, Ilhas do (Guernsey)"
+    },
+    {
+      "var": "Canárias, Ilhas",
+      "label": "Canárias, Ilhas"
+    },
+    {
+      "var": "Catar",
+      "label": "Catar"
+    },
+    {
+      "var": "Cayman, Ilhas",
+      "label": "Cayman, Ilhas"
+    },
+    {
+      "var": "Cazaquistão",
+      "label": "Cazaquistão"
+    },
+    {
+      "var": "Chade",
+      "label": "Chade"
+    },
+    {
+      "var": "Chile",
+      "label": "Chile"
+    },
+    {
+      "var": "China",
+      "label": "China"
+    },
+    {
+      "var": "Chipre",
+      "label": "Chipre"
+    },
+    {
+      "var": "Christmas (Navidad), Ilha",
+      "label": "Christmas (Navidad), Ilha"
+    },
+    {
+      "var": "Cocos (Keeling), Ilhas",
+      "label": "Cocos (Keeling), Ilhas"
+    },
+    {
+      "var": "Colômbia",
+      "label": "Colômbia"
+    },
+    {
+      "var": "Comores",
+      "label": "Comores"
+    },
+    {
+      "var": "Congo",
+      "label": "Congo"
+    },
+    {
+      "var": "Congo, República Democrática",
+      "label": "Congo, República Democrática"
+    },
+    {
+      "var": "Cook, Ilhas",
+      "label": "Cook, Ilhas"
+    },
+    {
+      "var": "Coreia do Norte",
+      "label": "Coreia do Norte"
+    },
+    {
+      "var": "Coreia do Sul",
+      "label": "Coreia do Sul"
+    },
+    {
+      "var": "Costa Rica",
+      "label": "Costa Rica"
+    },
+    {
+      "var": "Costa do Marfim",
+      "label": "Costa do Marfim"
+    },
+    {
+      "var": "Coveite (Kuweit)",
+      "label": "Coveite (Kuweit)"
+    },
+    {
+      "var": "Croácia",
+      "label": "Croácia"
+    },
+    {
+      "var": "Cuba",
+      "label": "Cuba"
+    },
+    {
+      "var": "Curaçao",
+      "label": "Curaçao"
+    },
+    {
+      "var": "Dinamarca",
+      "label": "Dinamarca"
+    },
+    {
+      "var": "Djibuti",
+      "label": "Djibuti"
+    },
+    {
+      "var": "Dominica",
+      "label": "Dominica"
+    },
+    {
+      "var": "Egito",
+      "label": "Egito"
+    },
+    {
+      "var": "El Salvador",
+      "label": "El Salvador"
+    },
+    {
+      "var": "Emirados Árabes Unidos",
+      "label": "Emirados Árabes Unidos"
+    },
+    {
+      "var": "Equador",
+      "label": "Equador"
+    },
+    {
+      "var": "Eslováquia",
+      "label": "Eslováquia"
+    },
+    {
+      "var": "Eslovênia",
+      "label": "Eslovênia"
+    },
+    {
+      "var": "Espanha",
+      "label": "Espanha"
+    },
+    {
+      "var": "Estados Unidos",
+      "label": "Estados Unidos"
+    },
+    {
+      "var": "Estônia",
+      "label": "Estônia"
+    },
+    {
+      "var": "Etiópia",
+      "label": "Etiópia"
+    },
+    {
+      "var": "Falkland (Malvinas)",
+      "label": "Falkland (Malvinas)"
+    },
+    {
+      "var": "Faroe, Ilhas",
+      "label": "Faroe, Ilhas"
+    },
+    {
+      "var": "Fiji",
+      "label": "Fiji"
+    },
+    {
+      "var": "Filipinas",
+      "label": "Filipinas"
+    },
+    {
+      "var": "Finlândia",
+      "label": "Finlândia"
+    },
+    {
+      "var": "França",
+      "label": "França"
+    },
+    {
+      "var": "Gabão",
+      "label": "Gabão"
+    },
+    {
+      "var": "Gana",
+      "label": "Gana"
+    },
+    {
+      "var": "Geórgia",
+      "label": "Geórgia"
+    },
+    {
+      "var": "Gibraltar",
+      "label": "Gibraltar"
+    },
+    {
+      "var": "Granada",
+      "label": "Granada"
+    },
+    {
+      "var": "Groenlândia",
+      "label": "Groenlândia"
+    },
+    {
+      "var": "Grécia",
+      "label": "Grécia"
+    },
+    {
+      "var": "Guadalupe",
+      "label": "Guadalupe"
+    },
+    {
+      "var": "Guam",
+      "label": "Guam"
+    },
+    {
+      "var": "Guatemala",
+      "label": "Guatemala"
+    },
+    {
+      "var": "Guiana",
+      "label": "Guiana"
+    },
+    {
+      "var": "Guiana Francesa",
+      "label": "Guiana Francesa"
+    },
+    {
+      "var": "Guiné",
+      "label": "Guiné"
+    },
+    {
+      "var": "Guiné Equatorial",
+      "label": "Guiné Equatorial"
+    },
+    {
+      "var": "Guiné-Bissau",
+      "label": "Guiné-Bissau"
+    },
+    {
+      "var": "Gâmbia",
+      "label": "Gâmbia"
+    },
+    {
+      "var": "Haiti",
+      "label": "Haiti"
+    },
+    {
+      "var": "Honduras",
+      "label": "Honduras"
+    },
+    {
+      "var": "Hong Kong",
+      "label": "Hong Kong"
+    },
+    {
+      "var": "Hungria",
+      "label": "Hungria"
+    },
+    {
+      "var": "Ilha de Man",
+      "label": "Ilha de Man"
+    },
+    {
+      "var": "Indonésia",
+      "label": "Indonésia"
+    },
+    {
+      "var": "Iraque",
+      "label": "Iraque"
+    },
+    {
+      "var": "Irlanda",
+      "label": "Irlanda"
+    },
+    {
+      "var": "Irã",
+      "label": "Irã"
+    },
+    {
+      "var": "Islândia",
+      "label": "Islândia"
+    },
+    {
+      "var": "Israel",
+      "label": "Israel"
+    },
+    {
+      "var": "Itália",
+      "label": "Itália"
+    },
+    {
+      "var": "Iugoslávia",
+      "label": "Iugoslávia"
+    },
+    {
+      "var": "Iêmen",
+      "label": "Iêmen"
+    },
+    {
+      "var": "Jamaica",
+      "label": "Jamaica"
+    },
+    {
+      "var": "Japão",
+      "label": "Japão"
+    },
+    {
+      "var": "Jordânia",
+      "label": "Jordânia"
+    },
+    {
+      "var": "Laos",
+      "label": "Laos"
+    },
+    {
+      "var": "Lesoto",
+      "label": "Lesoto"
+    },
+    {
+      "var": "Letônia",
+      "label": "Letônia"
+    },
+    {
+      "var": "Libéria",
+      "label": "Libéria"
+    },
+    {
+      "var": "Liechtenstein",
+      "label": "Liechtenstein"
+    },
+    {
+      "var": "Lituânia",
+      "label": "Lituânia"
+    },
+    {
+      "var": "Luxemburgo",
+      "label": "Luxemburgo"
+    },
+    {
+      "var": "Líbano",
+      "label": "Líbano"
+    },
+    {
+      "var": "Líbia",
+      "label": "Líbia"
+    },
+    {
+      "var": "Macau",
+      "label": "Macau"
+    },
+    {
+      "var": "Macedônia",
+      "label": "Macedônia"
+    },
+    {
+      "var": "Madagascar",
+      "label": "Madagascar"
+    },
+    {
+      "var": "Madeira, Ilha da",
+      "label": "Madeira, Ilha da"
+    },
+    {
+      "var": "Malavi",
+      "label": "Malavi"
+    },
+    {
+      "var": "Maldivas",
+      "label": "Maldivas"
+    },
+    {
+      "var": "Mali",
+      "label": "Mali"
+    },
+    {
+      "var": "Malta",
+      "label": "Malta"
+    },
+    {
+      "var": "Malásia",
+      "label": "Malásia"
+    },
+    {
+      "var": "Marrocos",
+      "label": "Marrocos"
+    },
+    {
+      "var": "Marshall, Ilhas",
+      "label": "Marshall, Ilhas"
+    },
+    {
+      "var": "Martinica",
+      "label": "Martinica"
+    },
+    {
+      "var": "Mauritânia",
+      "label": "Mauritânia"
+    },
+    {
+      "var": "Maurício",
+      "label": "Maurício"
+    },
+    {
+      "var": "Mayotte",
+      "label": "Mayotte"
+    },
+    {
+      "var": "Mianmar",
+      "label": "Mianmar"
+    },
+    {
+      "var": "Midway, Ilhas",
+      "label": "Midway, Ilhas"
+    },
+    {
+      "var": "Moldávia",
+      "label": "Moldávia"
+    },
+    {
+      "var": "Mongólia",
+      "label": "Mongólia"
+    },
+    {
+      "var": "Montenegro",
+      "label": "Montenegro"
+    },
+    {
+      "var": "Moçambique",
+      "label": "Moçambique"
+    },
+    {
+      "var": "México",
+      "label": "México"
+    },
+    {
+      "var": "Mônaco",
+      "label": "Mônaco"
+    },
+    {
+      "var": "Namíbia",
+      "label": "Namíbia"
+    },
+    {
+      "var": "Nepal",
+      "label": "Nepal"
+    },
+    {
+      "var": "Nicarágua",
+      "label": "Nicarágua"
+    },
+    {
+      "var": "Nigéria",
+      "label": "Nigéria"
+    },
+    {
+      "var": "Norfolk, Ilha",
+      "label": "Norfolk, Ilha"
+    },
+    {
+      "var": "Noruega",
+      "label": "Noruega"
+    },
+    {
+      "var": "Nova Caledônia",
+      "label": "Nova Caledônia"
+    },
+    {
+      "var": "Nova Zelândia",
+      "label": "Nova Zelândia"
+    },
+    {
+      "var": "Níger",
+      "label": "Níger"
+    },
+    {
+      "var": "Omã",
+      "label": "Omã"
+    },
+    {
+      "var": "Pacífico, Ilhas do (EUA)",
+      "label": "Pacífico, Ilhas do (EUA)"
+    },
+    {
+      "var": "Palau",
+      "label": "Palau"
+    },
+    {
+      "var": "Palestina",
+      "label": "Palestina"
+    },
+    {
+      "var": "Panamá",
+      "label": "Panamá"
+    },
+    {
+      "var": "Papua Nova Guiné",
+      "label": "Papua Nova Guiné"
+    },
+    {
+      "var": "Paquistão",
+      "label": "Paquistão"
+    },
+    {
+      "var": "Paraguai",
+      "label": "Paraguai"
+    },
+    {
+      "var": "Países Baixos (Holanda)",
+      "label": "Países Baixos (Holanda)"
+    },
+    {
+      "var": "Peru",
+      "label": "Peru"
+    },
+    {
+      "var": "Polinésia Francesa",
+      "label": "Polinésia Francesa"
+    },
+    {
+      "var": "Polônia",
+      "label": "Polônia"
+    },
+    {
+      "var": "Porto Rico",
+      "label": "Porto Rico"
+    },
+    {
+      "var": "Portugal",
+      "label": "Portugal"
+    },
+    {
+      "var": "Provisão de Navios e Aeronaves",
+      "label": "Provisão de Navios e Aeronaves"
+    },
+    {
+      "var": "Quirguistão",
+      "label": "Quirguistão"
+    },
+    {
+      "var": "Quênia",
+      "label": "Quênia"
+    },
+    {
+      "var": "Reino Unido",
+      "label": "Reino Unido"
+    },
+    {
+      "var": "República Centro-Africana",
+      "label": "República Centro-Africana"
+    },
+    {
+      "var": "República Dominicana",
+      "label": "República Dominicana"
+    },
+    {
+      "var": "Reunião",
+      "label": "Reunião"
+    },
+    {
+      "var": "Romênia",
+      "label": "Romênia"
+    },
+    {
+      "var": "Ruanda",
+      "label": "Ruanda"
+    },
+    {
+      "var": "Rússia",
+      "label": "Rússia"
+    },
+    {
+      "var": "Saara Ocidental",
+      "label": "Saara Ocidental"
+    },
+    {
+      "var": "Salomão, Ilhas",
+      "label": "Salomão, Ilhas"
+    },
+    {
+      "var": "San Marino",
+      "label": "San Marino"
+    },
+    {
+      "var": "Santa Helena",
+      "label": "Santa Helena"
+    },
+    {
+      "var": "Santa Lúcia",
+      "label": "Santa Lúcia"
+    },
+    {
+      "var": "Seicheles",
+      "label": "Seicheles"
+    },
+    {
+      "var": "Senegal",
+      "label": "Senegal"
+    },
+    {
+      "var": "Serra Leoa",
+      "label": "Serra Leoa"
+    },
+    {
+      "var": "Singapura",
+      "label": "Singapura"
+    },
+    {
+      "var": "Sint Maarten",
+      "label": "Sint Maarten"
+    },
+    {
+      "var": "Somália",
+      "label": "Somália"
+    },
+    {
+      "var": "Sri Lanka",
+      "label": "Sri Lanka"
+    },
+    {
+      "var": "Suazilândia",
+      "label": "Suazilândia"
+    },
+    {
+      "var": "Sudão",
+      "label": "Sudão"
+    },
+    {
+      "var": "Suriname",
+      "label": "Suriname"
+    },
+    {
+      "var": "Suécia",
+      "label": "Suécia"
+    },
+    {
+      "var": "Suíça",
+      "label": "Suíça"
+    },
+    {
+      "var": "São Bartolomeu",
+      "label": "São Bartolomeu"
+    },
+    {
+      "var": "São Cristóvão e Névis",
+      "label": "São Cristóvão e Névis"
+    },
+    {
+      "var": "São Martinho, Ilha de (parte francesa)",
+      "label": "São Martinho, Ilha de (parte francesa)"
+    },
+    {
+      "var": "São Tomé e Príncipe",
+      "label": "São Tomé e Príncipe"
+    },
+    {
+      "var": "São Vicente e Granadinas",
+      "label": "São Vicente e Granadinas"
+    },
+    {
+      "var": "Sérvia",
+      "label": "Sérvia"
+    },
+    {
+      "var": "Síria",
+      "label": "Síria"
+    },
+    {
+      "var": "Tadjiquistão",
+      "label": "Tadjiquistão"
+    },
+    {
+      "var": "Tailândia",
+      "label": "Tailândia"
+    },
+    {
+      "var": "Taiwan (Formosa)",
+      "label": "Taiwan (Formosa)"
+    },
+    {
+      "var": "Tanzânia",
+      "label": "Tanzânia"
+    },
+    {
+      "var": "Tcheca, República",
+      "label": "Tcheca, República"
+    },
+    {
+      "var": "Tchecoslováquia",
+      "label": "Tchecoslováquia"
+    },
+    {
+      "var": "Terras Austrais Francesas",
+      "label": "Terras Austrais Francesas"
+    },
+    {
+      "var": "Território Britânico do Oceano Índico",
+      "label": "Território Britânico do Oceano Índico"
+    },
+    {
+      "var": "Timor Leste",
+      "label": "Timor Leste"
+    },
+    {
+      "var": "Togo",
+      "label": "Togo"
+    },
+    {
+      "var": "Tonga",
+      "label": "Tonga"
+    },
+    {
+      "var": "Toquelau",
+      "label": "Toquelau"
+    },
+    {
+      "var": "Trinidad e Tobago",
+      "label": "Trinidad e Tobago"
+    },
+    {
+      "var": "Tunísia",
+      "label": "Tunísia"
+    },
+    {
+      "var": "Turcas e Caicos, Ilhas",
+      "label": "Turcas e Caicos, Ilhas"
+    },
+    {
+      "var": "Turcomenistão",
+      "label": "Turcomenistão"
+    },
+    {
+      "var": "Turquia",
+      "label": "Turquia"
+    },
+    {
+      "var": "Tuvalu",
+      "label": "Tuvalu"
+    },
+    {
+      "var": "Ucrânia",
+      "label": "Ucrânia"
+    },
+    {
+      "var": "Uganda",
+      "label": "Uganda"
+    },
+    {
+      "var": "Uruguai",
+      "label": "Uruguai"
+    },
+    {
+      "var": "Uzbequistão",
+      "label": "Uzbequistão"
+    },
+    {
+      "var": "Vanuatu",
+      "label": "Vanuatu"
+    },
+    {
+      "var": "Venezuela",
+      "label": "Venezuela"
+    },
+    {
+      "var": "Vietnã",
+      "label": "Vietnã"
+    },
+    {
+      "var": "Virgens, Ilhas (Americanas)",
+      "label": "Virgens, Ilhas (Americanas)"
+    },
+    {
+      "var": "Virgens, Ilhas (Britânicas)",
+      "label": "Virgens, Ilhas (Britânicas)"
+    },
+    {
+      "var": "Wallis e Futuna, Ilhas",
+      "label": "Wallis e Futuna, Ilhas"
+    },
+    {
+      "var": "Zimbábue",
+      "label": "Zimbábue"
+    },
+    {
+      "var": "Zâmbia",
+      "label": "Zâmbia"
+    },
+    {
+      "var": "África do Sul",
+      "label": "África do Sul"
+    },
+    {
+      "var": "Áustria",
+      "label": "Áustria"
+    },
+    {
+      "var": "Índia",
+      "label": "Índia"
+    }
+  ],
+  "en": [
+    {
+      "var": "Afeganistão",
+      "label": "Afghanistan"
+    },
+    {
+      "var": "Aland, Ilhas",
+      "label": "Aland Islands"
+    },
+    {
+      "var": "Albânia",
+      "label": "Albania"
+    },
+    {
+      "var": "Alemanha",
+      "label": "Germany"
+    },
+    {
+      "var": "Andorra",
+      "label": "Andorra"
+    },
+    {
+      "var": "Angola",
+      "label": "Angola"
+    },
+    {
+      "var": "Anguilla",
+      "label": "Anguilla"
+    },
+    {
+      "var": "Antilhas Holandesas",
+      "label": "Netherlands Antilles"
+    },
+    {
+      "var": "Antártica",
+      "label": "Antarctica"
+    },
+    {
+      "var": "Antígua e Barbuda",
+      "label": "Antigua and Barbuda"
+    },
+    {
+      "var": "Argentina",
+      "label": "Argentina"
+    },
+    {
+      "var": "Argélia",
+      "label": "Algeria"
+    },
+    {
+      "var": "Armênia",
+      "label": "Armenia"
+    },
+    {
+      "var": "Aruba",
+      "label": "Aruba"
+    },
+    {
+      "var": "Arábia Saudita",
+      "label": "Saudi Arabia"
+    },
+    {
+      "var": "Austrália",
+      "label": "Australia"
+    },
+    {
+      "var": "Azerbaijão",
+      "label": "Azerbaijan"
+    },
+    {
+      "var": "Bahamas",
+      "label": "Bahamas"
+    },
+    {
+      "var": "Bangladesh",
+      "label": "Bangladesh"
+    },
+    {
+      "var": "Barbados",
+      "label": "Barbados"
+    },
+    {
+      "var": "Barein",
+      "label": "Bahrein"
+    },
+    {
+      "var": "Belarus",
+      "label": "Belarus"
+    },
+    {
+      "var": "Belize",
+      "label": "Belize"
+    },
+    {
+      "var": "Benin",
+      "label": "Benin"
+    },
+    {
+      "var": "Bermudas",
+      "label": "Bermuda"
+    },
+    {
+      "var": "Bolívia",
+      "label": "Bolivia"
+    },
+    {
+      "var": "Bonaire, Saint Eustatius e Saba",
+      "label": "Bonaire, Saint Eustatius and Saba"
+    },
+    {
+      "var": "Botsuana",
+      "label": "Botswana"
+    },
+    {
+      "var": "Bouvet, Ilha",
+      "label": "Bouvet Island"
+    },
+    {
+      "var": "Brasil",
+      "label": "Brazil"
+    },
+    {
+      "var": "Brunei",
+      "label": "Brunei"
+    },
+    {
+      "var": "Bulgária",
+      "label": "Bulgaria"
+    },
+    {
+      "var": "Burkina Faso",
+      "label": "Burkina Faso"
+    },
+    {
+      "var": "Bélgica",
+      "label": "Belgium"
+    },
+    {
+      "var": "Bósnia-Herzegovina",
+      "label": "Bosnia and Herzegovina"
+    },
+    {
+      "var": "Cabo Verde",
+      "label": "Cape Verde"
+    },
+    {
+      "var": "Camarões",
+      "label": "Cameroon"
+    },
+    {
+      "var": "Camboja",
+      "label": "Cambodia"
+    },
+    {
+      "var": "Canadá",
+      "label": "Canada"
+    },
+    {
+      "var": "Canal, Ilhas do (Guernsey)",
+      "label": "Guernsey"
+    },
+    {
+      "var": "Canárias, Ilhas",
+      "label": "Canary, Islands"
+    },
+    {
+      "var": "Catar",
+      "label": "Qatar"
+    },
+    {
+      "var": "Cayman, Ilhas",
+      "label": "Cayman Islands"
+    },
+    {
+      "var": "Cazaquistão",
+      "label": "Kazakhstan"
+    },
+    {
+      "var": "Chade",
+      "label": "Chad"
+    },
+    {
+      "var": "Chile",
+      "label": "Chile"
+    },
+    {
+      "var": "China",
+      "label": "China"
+    },
+    {
+      "var": "Chipre",
+      "label": "Cyprus"
+    },
+    {
+      "var": "Christmas (Navidad), Ilha",
+      "label": "Christmas Island"
+    },
+    {
+      "var": "Cocos (Keeling), Ilhas",
+      "label": "Cocos (Keeling) Islands"
+    },
+    {
+      "var": "Colômbia",
+      "label": "Colombia"
+    },
+    {
+      "var": "Comores",
+      "label": "Comoros"
+    },
+    {
+      "var": "Congo",
+      "label": "Congo"
+    },
+    {
+      "var": "Congo, República Democrática",
+      "label": "Democratic Republic of the Congo"
+    },
+    {
+      "var": "Cook, Ilhas",
+      "label": "Cook Islands"
+    },
+    {
+      "var": "Coreia do Norte",
+      "label": "North Korea"
+    },
+    {
+      "var": "Coreia do Sul",
+      "label": "South Korea"
+    },
+    {
+      "var": "Costa Rica",
+      "label": "Costa Rica"
+    },
+    {
+      "var": "Costa do Marfim",
+      "label": "Cote D'Ivore"
+    },
+    {
+      "var": "Coveite (Kuweit)",
+      "label": "Kuwait"
+    },
+    {
+      "var": "Croácia",
+      "label": "Croatia"
+    },
+    {
+      "var": "Cuba",
+      "label": "Cuba"
+    },
+    {
+      "var": "Curaçao",
+      "label": "Curaçao"
+    },
+    {
+      "var": "Dinamarca",
+      "label": "Denmark"
+    },
+    {
+      "var": "Djibuti",
+      "label": "Djibouti"
+    },
+    {
+      "var": "Dominica",
+      "label": "Dominica Island"
+    },
+    {
+      "var": "Egito",
+      "label": "Egypt"
+    },
+    {
+      "var": "El Salvador",
+      "label": "El Salvador"
+    },
+    {
+      "var": "Emirados Árabes Unidos",
+      "label": "United Arab Emirates"
+    },
+    {
+      "var": "Equador",
+      "label": "Ecuador"
+    },
+    {
+      "var": "Eslováquia",
+      "label": "Slovakia"
+    },
+    {
+      "var": "Eslovênia",
+      "label": "Slovenia"
+    },
+    {
+      "var": "Espanha",
+      "label": "Spain"
+    },
+    {
+      "var": "Estados Unidos",
+      "label": "United States"
+    },
+    {
+      "var": "Estônia",
+      "label": "Estonia"
+    },
+    {
+      "var": "Etiópia",
+      "label": "Ethiopia"
+    },
+    {
+      "var": "Falkland (Malvinas)",
+      "label": "Falkland Islands (Malvinas)"
+    },
+    {
+      "var": "Faroe, Ilhas",
+      "label": "Faroe Islands"
+    },
+    {
+      "var": "Fiji",
+      "label": "Fiji"
+    },
+    {
+      "var": "Filipinas",
+      "label": "Philippines"
+    },
+    {
+      "var": "Finlândia",
+      "label": "Finland"
+    },
+    {
+      "var": "França",
+      "label": "France"
+    },
+    {
+      "var": "Gabão",
+      "label": "Gabon"
+    },
+    {
+      "var": "Gana",
+      "label": "Ghana"
+    },
+    {
+      "var": "Geórgia",
+      "label": "Georgia"
+    },
+    {
+      "var": "Gibraltar",
+      "label": "Gibraltar"
+    },
+    {
+      "var": "Granada",
+      "label": "Grenada"
+    },
+    {
+      "var": "Groenlândia",
+      "label": "Greenland"
+    },
+    {
+      "var": "Grécia",
+      "label": "Greece"
+    },
+    {
+      "var": "Guadalupe",
+      "label": "Guadeloupe"
+    },
+    {
+      "var": "Guam",
+      "label": "Guam"
+    },
+    {
+      "var": "Guatemala",
+      "label": "Guatemala"
+    },
+    {
+      "var": "Guiana",
+      "label": "Guyana"
+    },
+    {
+      "var": "Guiana Francesa",
+      "label": "French Guyana"
+    },
+    {
+      "var": "Guiné",
+      "label": "Guinea"
+    },
+    {
+      "var": "Guiné Equatorial",
+      "label": "Equatorial Guinea"
+    },
+    {
+      "var": "Guiné-Bissau",
+      "label": "Guinea-Bissau"
+    },
+    {
+      "var": "Gâmbia",
+      "label": "Gambia"
+    },
+    {
+      "var": "Haiti",
+      "label": "Haiti"
+    },
+    {
+      "var": "Honduras",
+      "label": "Honduras"
+    },
+    {
+      "var": "Hong Kong",
+      "label": "Hong Kong"
+    },
+    {
+      "var": "Hungria",
+      "label": "Hungary"
+    },
+    {
+      "var": "Ilha de Man",
+      "label": "Isle of Man"
+    },
+    {
+      "var": "Indonésia",
+      "label": "Indonesia"
+    },
+    {
+      "var": "Iraque",
+      "label": "Iraq"
+    },
+    {
+      "var": "Irlanda",
+      "label": "Ireland"
+    },
+    {
+      "var": "Irã",
+      "label": "Iran"
+    },
+    {
+      "var": "Islândia",
+      "label": "Iceland"
+    },
+    {
+      "var": "Israel",
+      "label": "Israel"
+    },
+    {
+      "var": "Itália",
+      "label": "Italy"
+    },
+    {
+      "var": "Iugoslávia",
+      "label": "Yugoslavia"
+    },
+    {
+      "var": "Iêmen",
+      "label": "Yemen"
+    },
+    {
+      "var": "Jamaica",
+      "label": "Jamaica"
+    },
+    {
+      "var": "Japão",
+      "label": "Japan"
+    },
+    {
+      "var": "Jordânia",
+      "label": "Jordan"
+    },
+    {
+      "var": "Laos",
+      "label": "Laos"
+    },
+    {
+      "var": "Lesoto",
+      "label": "Lesotho"
+    },
+    {
+      "var": "Letônia",
+      "label": "Latvia"
+    },
+    {
+      "var": "Libéria",
+      "label": "Liberia"
+    },
+    {
+      "var": "Liechtenstein",
+      "label": "Liechtenstein"
+    },
+    {
+      "var": "Lituânia",
+      "label": "Lithuania"
+    },
+    {
+      "var": "Luxemburgo",
+      "label": "Luxembourg"
+    },
+    {
+      "var": "Líbano",
+      "label": "Lebanon"
+    },
+    {
+      "var": "Líbia",
+      "label": "Libya"
+    },
+    {
+      "var": "Macau",
+      "label": "Macao"
+    },
+    {
+      "var": "Macedônia",
+      "label": "Macedonia"
+    },
+    {
+      "var": "Madagascar",
+      "label": "Madagascar"
+    },
+    {
+      "var": "Madeira, Ilha da",
+      "label": "Madeira"
+    },
+    {
+      "var": "Malavi",
+      "label": "Malawi"
+    },
+    {
+      "var": "Maldivas",
+      "label": "Maldives"
+    },
+    {
+      "var": "Mali",
+      "label": "Mali"
+    },
+    {
+      "var": "Malta",
+      "label": "Malta"
+    },
+    {
+      "var": "Malásia",
+      "label": "Malaysia"
+    },
+    {
+      "var": "Marrocos",
+      "label": "Morocco"
+    },
+    {
+      "var": "Marshall, Ilhas",
+      "label": "Marshall Islands"
+    },
+    {
+      "var": "Martinica",
+      "label": "Martinique"
+    },
+    {
+      "var": "Mauritânia",
+      "label": "Mauritania"
+    },
+    {
+      "var": "Maurício",
+      "label": "Mauritius"
+    },
+    {
+      "var": "Mayotte",
+      "label": "Mayotte"
+    },
+    {
+      "var": "Mianmar",
+      "label": "Myanmar"
+    },
+    {
+      "var": "Midway, Ilhas",
+      "label": "Midway, Islands"
+    },
+    {
+      "var": "Moldávia",
+      "label": "Moldova"
+    },
+    {
+      "var": "Mongólia",
+      "label": "Mongolia"
+    },
+    {
+      "var": "Montenegro",
+      "label": "Montenegro"
+    },
+    {
+      "var": "Moçambique",
+      "label": "Mozambique"
+    },
+    {
+      "var": "México",
+      "label": "Mexico"
+    },
+    {
+      "var": "Mônaco",
+      "label": "Monaco"
+    },
+    {
+      "var": "Namíbia",
+      "label": "Namibia"
+    },
+    {
+      "var": "Nepal",
+      "label": "Nepal"
+    },
+    {
+      "var": "Nicarágua",
+      "label": "Nicaragua"
+    },
+    {
+      "var": "Nigéria",
+      "label": "Nigeria"
+    },
+    {
+      "var": "Norfolk, Ilha",
+      "label": "Norfolk Island"
+    },
+    {
+      "var": "Noruega",
+      "label": "Norway"
+    },
+    {
+      "var": "Nova Caledônia",
+      "label": "New Caledonia"
+    },
+    {
+      "var": "Nova Zelândia",
+      "label": "New Zealand"
+    },
+    {
+      "var": "Níger",
+      "label": "Niger"
+    },
+    {
+      "var": "Omã",
+      "label": "Oman"
+    },
+    {
+      "var": "Pacífico, Ilhas do (EUA)",
+      "label": "Pacific Islands (USA)"
+    },
+    {
+      "var": "Palau",
+      "label": "Palau"
+    },
+    {
+      "var": "Palestina",
+      "label": "Palestine"
+    },
+    {
+      "var": "Panamá",
+      "label": "Panama"
+    },
+    {
+      "var": "Papua Nova Guiné",
+      "label": "Papua New Guinea"
+    },
+    {
+      "var": "Paquistão",
+      "label": "Pakistan"
+    },
+    {
+      "var": "Paraguai",
+      "label": "Paraguay"
+    },
+    {
+      "var": "Países Baixos (Holanda)",
+      "label": "Netherlands"
+    },
+    {
+      "var": "Peru",
+      "label": "Peru"
+    },
+    {
+      "var": "Polinésia Francesa",
+      "label": "French Polynesia"
+    },
+    {
+      "var": "Polônia",
+      "label": "Poland"
+    },
+    {
+      "var": "Porto Rico",
+      "label": "Puerto Rico"
+    },
+    {
+      "var": "Portugal",
+      "label": "Portugal"
+    },
+    {
+      "var": "Provisão de Navios e Aeronaves",
+      "label": "Planes and ships provisions"
+    },
+    {
+      "var": "Quirguistão",
+      "label": "Kyrgyzstan"
+    },
+    {
+      "var": "Quênia",
+      "label": "Kenya"
+    },
+    {
+      "var": "Reino Unido",
+      "label": "United Kingdom"
+    },
+    {
+      "var": "República Centro-Africana",
+      "label": "Central African Republic"
+    },
+    {
+      "var": "República Dominicana",
+      "label": "Dominican Republic"
+    },
+    {
+      "var": "Reunião",
+      "label": "Reunion"
+    },
+    {
+      "var": "Romênia",
+      "label": "Romania"
+    },
+    {
+      "var": "Ruanda",
+      "label": "Rwanda"
+    },
+    {
+      "var": "Rússia",
+      "label": "Russia"
+    },
+    {
+      "var": "Saara Ocidental",
+      "label": "Western Sahara"
+    },
+    {
+      "var": "Salomão, Ilhas",
+      "label": "Solomon Islands"
+    },
+    {
+      "var": "San Marino",
+      "label": "San Marino"
+    },
+    {
+      "var": "Santa Helena",
+      "label": "Saint Helena"
+    },
+    {
+      "var": "Santa Lúcia",
+      "label": "Saint Lucia"
+    },
+    {
+      "var": "Seicheles",
+      "label": "Seychelles"
+    },
+    {
+      "var": "Senegal",
+      "label": "Senegal"
+    },
+    {
+      "var": "Serra Leoa",
+      "label": "Sierra Leone"
+    },
+    {
+      "var": "Singapura",
+      "label": "Singapore"
+    },
+    {
+      "var": "Sint Maarten",
+      "label": "Sint Maarten"
+    },
+    {
+      "var": "Somália",
+      "label": "Somalia"
+    },
+    {
+      "var": "Sri Lanka",
+      "label": "Sri Lanka"
+    },
+    {
+      "var": "Suazilândia",
+      "label": "Swaziland"
+    },
+    {
+      "var": "Sudão",
+      "label": "Sudan"
+    },
+    {
+      "var": "Suriname",
+      "label": "Suriname"
+    },
+    {
+      "var": "Suécia",
+      "label": "Sweden"
+    },
+    {
+      "var": "Suíça",
+      "label": "Switzerland"
+    },
+    {
+      "var": "São Bartolomeu",
+      "label": "Saint Barthelemy"
+    },
+    {
+      "var": "São Cristóvão e Névis",
+      "label": "Saint Christopher and Nevis"
+    },
+    {
+      "var": "São Martinho, Ilha de (parte francesa)",
+      "label": "São Martinho, Ilha de (parte francesa)"
+    },
+    {
+      "var": "São Tomé e Príncipe",
+      "label": "São Tome and Principe"
+    },
+    {
+      "var": "São Vicente e Granadinas",
+      "label": "Saint Vicent and the Granadines"
+    },
+    {
+      "var": "Sérvia",
+      "label": "Serbia"
+    },
+    {
+      "var": "Síria",
+      "label": "Syria"
+    },
+    {
+      "var": "Tadjiquistão",
+      "label": "Tajikistan"
+    },
+    {
+      "var": "Tailândia",
+      "label": "Thailand"
+    },
+    {
+      "var": "Taiwan (Formosa)",
+      "label": "Taiwan"
+    },
+    {
+      "var": "Tanzânia",
+      "label": "Tanzania"
+    },
+    {
+      "var": "Tcheca, República",
+      "label": "Czech Republic"
+    },
+    {
+      "var": "Tchecoslováquia",
+      "label": "Czechoslovakia"
+    },
+    {
+      "var": "Terras Austrais Francesas",
+      "label": "French Southern Lands"
+    },
+    {
+      "var": "Território Britânico do Oceano Índico",
+      "label": "British Indian Ocean Territory"
+    },
+    {
+      "var": "Timor Leste",
+      "label": "East Timor"
+    },
+    {
+      "var": "Togo",
+      "label": "Togo"
+    },
+    {
+      "var": "Tonga",
+      "label": "Tonga"
+    },
+    {
+      "var": "Toquelau",
+      "label": "Tokelau"
+    },
+    {
+      "var": "Trinidad e Tobago",
+      "label": "Trinidad and Tobago"
+    },
+    {
+      "var": "Tunísia",
+      "label": "Tunisia"
+    },
+    {
+      "var": "Turcas e Caicos, Ilhas",
+      "label": "Turks and Caicos, Islands"
+    },
+    {
+      "var": "Turcomenistão",
+      "label": "Turkmenistan"
+    },
+    {
+      "var": "Turquia",
+      "label": "Turkey"
+    },
+    {
+      "var": "Tuvalu",
+      "label": "Tuvalu"
+    },
+    {
+      "var": "Ucrânia",
+      "label": "Ukraine"
+    },
+    {
+      "var": "Uganda",
+      "label": "Uganda"
+    },
+    {
+      "var": "Uruguai",
+      "label": "Uruguay"
+    },
+    {
+      "var": "Uzbequistão",
+      "label": "Uzbekistan"
+    },
+    {
+      "var": "Vanuatu",
+      "label": "Vanuatu"
+    },
+    {
+      "var": "Venezuela",
+      "label": "Venezuela"
+    },
+    {
+      "var": "Vietnã",
+      "label": "Vietnam"
+    },
+    {
+      "var": "Virgens, Ilhas (Americanas)",
+      "label": "Virgin Islands (USA)"
+    },
+    {
+      "var": "Virgens, Ilhas (Britânicas)",
+      "label": "Virgin Islands (UK)"
+    },
+    {
+      "var": "Wallis e Futuna, Ilhas",
+      "label": "Wallis and Futuna"
+    },
+    {
+      "var": "Zimbábue",
+      "label": "Zimbabwe"
+    },
+    {
+      "var": "Zâmbia",
+      "label": "Zambia"
+    },
+    {
+      "var": "África do Sul",
+      "label": "South Africa"
+    },
+    {
+      "var": "Áustria",
+      "label": "Austria"
+    },
+    {
+      "var": "Índia",
+      "label": "India"
+    }
+  ]
+}

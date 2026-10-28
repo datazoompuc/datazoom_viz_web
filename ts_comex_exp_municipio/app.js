@@ -93,6 +93,20 @@
       label_ranking_orientation: "Ranking de",
       ranking_orientation_municipio: "Municípios",
       ranking_orientation_produto: "Produtos",
+      ranking_orientation_pais: "Países",
+      title_ranking_paises: "Ranking de países de destino",
+      title_ranking_paises_scope: "Ranking de países de destino — {scope}",
+      subtitle_ranking_paises: "Valor exportado (US$), por país de destino",
+      title_change_paises: "Variação por país de destino",
+      title_change_paises_scope: "Variação por país de destino — {scope}",
+      subtitle_change_paises: "Países ordenados pela variação no valor exportado",
+      title_trends_paises: "Tendências por país de destino",
+      title_trends_paises_scope: "Tendências por país de destino — {scope}",
+      subtitle_trends_paises: "Top países por valor total exportado, {range}",
+      title_explore_paises: "Comparar países de destino",
+      title_explore_paises_scope: "Comparar países de destino — {scope}",
+      subtitle_explore_paises: "Valor exportado ({unit}) ao longo do tempo, países selecionados",
+      label_explore_paises: "Países (Ctrl/Cmd+clique para vários)",
       label_ranking_scope: "Escopo",
       title_ranking_produtos: "Ranking de produtos exportados",
       title_ranking_produtos_scope: "Ranking de produtos exportados — {scope}",
@@ -109,6 +123,7 @@
       prodrank_cat_industria: "Indústria e manufaturados",
       ranking_product_total_prefix: "Total exportado no ano: ",
       label_loading: "Carregando…",
+      year_partial: "parcial · {n} meses",
       combo_placeholder: "Buscar…",
       combo_no_match: "Nenhum resultado",
       combo_count: "{n} de {total}",
@@ -220,6 +235,20 @@
       label_ranking_orientation: "Rank by",
       ranking_orientation_municipio: "Municipalities",
       ranking_orientation_produto: "Products",
+      ranking_orientation_pais: "Countries",
+      title_ranking_paises: "Ranking of destination countries",
+      title_ranking_paises_scope: "Ranking of destination countries — {scope}",
+      subtitle_ranking_paises: "Export value (US$), by destination country",
+      title_change_paises: "Change by destination country",
+      title_change_paises_scope: "Change by destination country — {scope}",
+      subtitle_change_paises: "Countries ranked by change in export value",
+      title_trends_paises: "Trends by destination country",
+      title_trends_paises_scope: "Trends by destination country — {scope}",
+      subtitle_trends_paises: "Top countries by total export value, {range}",
+      title_explore_paises: "Compare destination countries",
+      title_explore_paises_scope: "Compare destination countries — {scope}",
+      subtitle_explore_paises: "Export value ({unit}) over time, selected countries",
+      label_explore_paises: "Countries (Ctrl/Cmd+click for multiple)",
       label_ranking_scope: "Scope",
       title_ranking_produtos: "Ranking of exported products",
       title_ranking_produtos_scope: "Ranking of exported products — {scope}",
@@ -236,6 +265,7 @@
       prodrank_cat_industria: "Industry & manufactured goods",
       ranking_product_total_prefix: "Total exported that year: ",
       label_loading: "Loading…",
+      year_partial: "partial · {n} months",
       combo_placeholder: "Search…",
       combo_no_match: "No matches",
       combo_count: "{n} of {total}",
@@ -387,6 +417,10 @@
   let compositionIndexSec; // { byMunicipio: Map(municipio -> [{produto,ano,valor}]), byProduto: Map(produto -> [{municipio,ano,valor}]) }
   let sh2LoadPromise = null;
   let compositionSh2, productsSh2, muniCompositionSh2;
+  // Destino: mesma forma dos níveis de produto, buscado sob demanda
+  // (1,8 MB — a grade município x país x ano tem só 2,7% de densidade).
+  let paisLoadPromise = null;
+  let compositionPais, productsPais, compositionIndexPais;
   let compositionSeriesSh2;
   let compositionIndexSh2;
   let totalsByYear; // year -> [{municipio, valor}], sorted descending
@@ -654,6 +688,29 @@
     return sh2LoadPromise;
   }
 
+  function ensurePaisLoaded() {
+    if (loadFailed) return suppressedLoad();
+    if (paisLoadPromise) return paisLoadPromise;
+    paisLoadPromise = rememberUntilFailed(Promise.all([
+      fetchJson(`${DATA_DIR}/composition_pais.json`),
+      fetchJson(`${DATA_DIR}/municipality_composition_pais.json`),
+      fetchJson(`${DATA_DIR}/paises.json`)
+    ]).then(([comp, muniComp, dic]) => {
+      // O JSON nomeia os campos pelo que eles são (pais/paises); aqui são
+      // remapeados para o nome genérico que todo o resto do app usa para
+      // "a dimensão categórica". Duas linhas aqui evitam um ramo paralelo
+      // em cada função de render.
+      compositionPais = comp.map((r) => ({ produto: r.pais, ano: r.ano, valor: r.valor }));
+      productsPais = dic;
+      compositionIndexPais = buildCompositionIndexes({
+        municipios: muniComp.municipios,
+        produtos: muniComp.paises,
+        cells: muniComp.cells
+      });
+    }), () => { paisLoadPromise = null; });
+    return paisLoadPromise;
+  }
+
   // ---- Product ranking (SH4): lazy-loaded on first visit to that view ----
 
   // The original app_rk_comex_exp_munic_produtosamz didn't expose all ~1,142
@@ -814,6 +871,41 @@
     return s.replace("{range}", `${dictionary.year_inicio}–${dictionary.year_final}`);
   }
 
+  // ---- Anos parciais ----
+  //
+  // A base pode terminar num ano incompleto (2026 tem 9 meses). Mostrar
+  // isso sem avisar faz todo gráfico exibir uma queda que é artefato de
+  // calendário, não de comércio: 2026 com 9 meses fica 14% ABAIXO de 2025,
+  // enquanto os mesmos 9 meses anualizados ficam 14% ACIMA. Nada é
+  // anualizado aqui — só sinalizado, para quem lê saber o que está vendo.
+  function mesesDoAno(year) {
+    const p = dictionary.anos_parciais;
+    if (!p) return null;
+    const n = p[String(year)];
+    return typeof n === "number" ? n : null;
+  }
+
+  // Mantém o aviso de ano parcial ao lado do "Ano 20xx". Chamado de todo
+  // lugar que escreve year-value, para o rótulo nunca ficar defasado.
+  function syncAnoParcial(year) {
+    const el = document.getElementById("year-partial");
+    if (!el) return;
+    const meses = mesesDoAno(year);
+    el.classList.toggle("hidden", meses === null);
+    el.textContent = meses === null ? "" :
+      I18N[state.lang].year_partial.replace("{n}", meses);
+  }
+
+  function isAnoParcial(year) {
+    return mesesDoAno(year) !== null;
+  }
+
+  // Último ano com 12 meses. É onde o app abre, para a visão padrão nunca
+  // ser um ano pela metade.
+  function ultimoAnoCompleto() {
+    return dictionary.year_final_completo || dictionary.year_final;
+  }
+
   // Explorar's log scale re-spaces the y-axis logarithmically but still
   // prints real dollar figures on it — indexing instead replaces those
   // dollar figures with a relative (=100) number. Either way the subtitle's
@@ -827,7 +919,9 @@
   }
 
   function exploreSubtitleText(t) {
-    const base = state.exploreOrientation === "produto"
+    const base = state.exploreOrientation === "pais"
+      ? t.subtitle_explore_paises
+      : state.exploreOrientation === "produto"
       ? t.subtitle_explore_produtos
       : (currentExploreFilterLabel() ? t.subtitle_explore_category : t.subtitle_explore);
     return base.replace("{unit}", exploreUnitLabel(t));
@@ -1448,7 +1542,7 @@
     state.lang = qLang === "en" ? "en" : "pt";
     state.year = Number.isFinite(qYear) && qYear >= dictionary.year_inicio && qYear <= dictionary.year_final
       ? qYear
-      : dictionary.year_final;
+      : ultimoAnoCompleto();
     state.view = ["ranking", "composition", "change", "trends", "explore", "map"].includes(qView) ? qView : "ranking";
     // null (not ufList[0]) if absent/invalid — "Todos os estados" is a
     // valid, common default for every view except Variação, which forces
@@ -1460,7 +1554,7 @@
     state.yearB = Number.isFinite(qYearB) && qYearB >= dictionary.year_inicio && qYearB <= dictionary.year_final
       ? qYearB
       : dictionary.year_final;
-    state.changeOrientation = qChangeOrientation === "produto" ? "produto" : "municipio";
+    state.changeOrientation = ORIENTACOES.includes(qChangeOrientation) ? qChangeOrientation : "municipio";
     state.changeAggLevel = ["all", "sec", "sh2"].includes(qChangeAggLevel) ? qChangeAggLevel : "all";
     state.changeCategory = qChangeCategory || null;
     state.changeProdutoLevel = ["sec", "sh2"].includes(qChangeProdutoLevel) ? qChangeProdutoLevel : "sec";
@@ -1484,17 +1578,17 @@
     // — the raw query value is kept provisionally so a shared URL still resolves.
     state.rankingCategory = qRankCategory || null;
     state.rankingProduct = qRankProduct || null;
-    state.rankingOrientation = qRankOrientation === "produto" ? "produto" : "municipio";
+    state.rankingOrientation = ORIENTACOES.includes(qRankOrientation) ? qRankOrientation : "municipio";
     state.rankingProdutoLevel = ["sec", "sh2", "sh4"].includes(qRankProdutoLevel) ? qRankProdutoLevel : "sec";
     state.rankingScope = qRankScope && totalsByMunicipio.has(qRankScope) ? qRankScope : null;
     state.trendsAggLevel = ["all", "sec", "sh2"].includes(qTrendsAggLevel) ? qTrendsAggLevel : "all";
     state.trendsCategory = qTrendsCategory || null;
-    state.trendsOrientation = qTrendsOrientation === "produto" ? "produto" : "municipio";
+    state.trendsOrientation = ORIENTACOES.includes(qTrendsOrientation) ? qTrendsOrientation : "municipio";
     state.trendsProdutoLevel = ["sec", "sh2"].includes(qTrendsProdutoLevel) ? qTrendsProdutoLevel : "sec";
     state.trendsScope = qTrendsScope && totalsByMunicipio.has(qTrendsScope) ? qTrendsScope : null;
     state.exploreAggLevel = ["all", "sec", "sh2"].includes(qExploreAggLevel) ? qExploreAggLevel : "all";
     state.exploreCategory = qExploreCategory || null;
-    state.exploreOrientation = qExploreOrientation === "produto" ? "produto" : "municipio";
+    state.exploreOrientation = ORIENTACOES.includes(qExploreOrientation) ? qExploreOrientation : "municipio";
     state.exploreProdutoLevel = ["sec", "sh2"].includes(qExploreProdutoLevel) ? qExploreProdutoLevel : "sec";
     state.exploreProdutos = qExploreProdutos ? qExploreProdutos.split("|").filter(Boolean) : [];
     state.exploreScope = qExploreScope && totalsByMunicipio.has(qExploreScope) ? qExploreScope : null;
@@ -1662,10 +1756,8 @@
 
     document.getElementById("ranking-orientation-municipio").addEventListener("click", () => setRankingOrientation("municipio"));
     document.getElementById("ranking-orientation-produto").addEventListener("click", () => setRankingOrientation("produto"));
-    document.getElementById("ranking-orientation-municipio").classList.toggle("active", state.rankingOrientation === "municipio");
-    document.getElementById("ranking-orientation-produto").classList.toggle("active", state.rankingOrientation === "produto");
-    document.getElementById("ranking-by-municipio-group").classList.toggle("hidden", state.rankingOrientation !== "municipio");
-    document.getElementById("ranking-by-produto-group").classList.toggle("hidden", state.rankingOrientation !== "produto");
+    document.getElementById("ranking-orientation-pais").addEventListener("click", () => setRankingOrientation("pais"));
+    aplicarOrientacao("ranking", state.rankingOrientation);
 
     const rankingProdutoLevelSelect = document.getElementById("ranking-produto-level-select");
     rankingProdutoLevelSelect.value = state.rankingProdutoLevel;
@@ -1710,10 +1802,8 @@
 
     document.getElementById("trends-orientation-municipio").addEventListener("click", () => setTrendsOrientation("municipio"));
     document.getElementById("trends-orientation-produto").addEventListener("click", () => setTrendsOrientation("produto"));
-    document.getElementById("trends-orientation-municipio").classList.toggle("active", state.trendsOrientation === "municipio");
-    document.getElementById("trends-orientation-produto").classList.toggle("active", state.trendsOrientation === "produto");
-    document.getElementById("trends-by-municipio-group").classList.toggle("hidden", state.trendsOrientation !== "municipio");
-    document.getElementById("trends-by-produto-group").classList.toggle("hidden", state.trendsOrientation !== "produto");
+    document.getElementById("trends-orientation-pais").addEventListener("click", () => setTrendsOrientation("pais"));
+    aplicarOrientacao("trends", state.trendsOrientation);
 
     const trendsProdutoLevelSelect = document.getElementById("trends-produto-level-select");
     trendsProdutoLevelSelect.value = state.trendsProdutoLevel;
@@ -1759,10 +1849,8 @@
 
     document.getElementById("explore-orientation-municipio").addEventListener("click", () => setExploreOrientation("municipio"));
     document.getElementById("explore-orientation-produto").addEventListener("click", () => setExploreOrientation("produto"));
-    document.getElementById("explore-orientation-municipio").classList.toggle("active", state.exploreOrientation === "municipio");
-    document.getElementById("explore-orientation-produto").classList.toggle("active", state.exploreOrientation === "produto");
-    document.getElementById("explore-by-municipio-group").classList.toggle("hidden", state.exploreOrientation !== "municipio");
-    document.getElementById("explore-by-produto-group").classList.toggle("hidden", state.exploreOrientation !== "produto");
+    document.getElementById("explore-orientation-pais").addEventListener("click", () => setExploreOrientation("pais"));
+    aplicarOrientacao("explore", state.exploreOrientation);
 
     const exploreProdutoLevelSelect = document.getElementById("explore-produto-level-select");
     exploreProdutoLevelSelect.value = state.exploreProdutoLevel;
@@ -1915,10 +2003,8 @@
 
     document.getElementById("change-orientation-municipio").addEventListener("click", () => setChangeOrientation("municipio"));
     document.getElementById("change-orientation-produto").addEventListener("click", () => setChangeOrientation("produto"));
-    document.getElementById("change-orientation-municipio").classList.toggle("active", state.changeOrientation === "municipio");
-    document.getElementById("change-orientation-produto").classList.toggle("active", state.changeOrientation === "produto");
-    document.getElementById("change-by-municipio-group").classList.toggle("hidden", state.changeOrientation !== "municipio");
-    document.getElementById("change-by-produto-group").classList.toggle("hidden", state.changeOrientation !== "produto");
+    document.getElementById("change-orientation-pais").addEventListener("click", () => setChangeOrientation("pais"));
+    aplicarOrientacao("change", state.changeOrientation);
 
     const changeAggLevelSelect = document.getElementById("change-agg-level-select");
     changeAggLevelSelect.addEventListener("change", (e) => {
@@ -2003,10 +2089,7 @@
   // switch (no reset), so toggling back and forth doesn't lose a choice.
   function setRankingOrientation(orientation) {
     state.rankingOrientation = orientation;
-    document.getElementById("ranking-orientation-municipio").classList.toggle("active", orientation === "municipio");
-    document.getElementById("ranking-orientation-produto").classList.toggle("active", orientation === "produto");
-    document.getElementById("ranking-by-municipio-group").classList.toggle("hidden", orientation !== "municipio");
-    document.getElementById("ranking-by-produto-group").classList.toggle("hidden", orientation !== "produto");
+    aplicarOrientacao("ranking", orientation);
     updateUrl();
     render();
   }
@@ -2025,34 +2108,52 @@
 
   // Variação's own axis-swap toggle — see renderChangeByProduto for the
   // actual rendering. Same idiom as setRankingOrientation/setCompositionOrientation.
+  // ---- Troca de eixo: Municípios | Produtos | Países ----
+  //
+  // As quatro telas com troca de eixo têm exatamente a mesma mecânica, daí
+  // um só aplicador. "Países" reusa o grupo de controles de "Produtos" —
+  // o escopo (município/estado/região) vale igual para os dois — escondendo
+  // apenas o seletor de nível, que não faz sentido quando a dimensão já é
+  // o país. Internamente país é só mais um nível (ver compositionIndexFor),
+  // então nada além disto precisou saber que a orientação existe.
+  const ORIENTACOES = ["municipio", "produto", "pais"];
+
+  function aplicarOrientacao(view, orientation) {
+    for (const o of ORIENTACOES) {
+      const btn = document.getElementById(`${view}-orientation-${o}`);
+      if (btn) btn.classList.toggle("active", orientation === o);
+    }
+    document.getElementById(`${view}-by-municipio-group`).classList.toggle("hidden", orientation !== "municipio");
+    document.getElementById(`${view}-by-produto-group`).classList.toggle("hidden", orientation === "municipio");
+    const wrap = document.getElementById(`${view}-produto-level-wrap`);
+    if (wrap) wrap.classList.toggle("hidden", orientation === "pais");
+  }
+
+  // Nível efetivo da dimensão categórica: "pais" quando a orientação é
+  // países, senão o nível escolhido no seletor. Mantido separado de
+  // state.*ProdutoLevel para que voltar de Países para Produtos lembre o
+  // nível que estava selecionado antes.
+  function nivelCategoria(orientation, produtoLevel) {
+    return orientation === "pais" ? "pais" : produtoLevel;
+  }
+
   function setChangeOrientation(orientation) {
     state.changeOrientation = orientation;
-    document.getElementById("change-orientation-municipio").classList.toggle("active", orientation === "municipio");
-    document.getElementById("change-orientation-produto").classList.toggle("active", orientation === "produto");
-    document.getElementById("change-by-municipio-group").classList.toggle("hidden", orientation !== "municipio");
-    document.getElementById("change-by-produto-group").classList.toggle("hidden", orientation !== "produto");
+    aplicarOrientacao("change", orientation);
     updateUrl();
     render();
   }
 
-  // Tendências' own axis-swap toggle — same idiom as setChangeOrientation.
   function setTrendsOrientation(orientation) {
     state.trendsOrientation = orientation;
-    document.getElementById("trends-orientation-municipio").classList.toggle("active", orientation === "municipio");
-    document.getElementById("trends-orientation-produto").classList.toggle("active", orientation === "produto");
-    document.getElementById("trends-by-municipio-group").classList.toggle("hidden", orientation !== "municipio");
-    document.getElementById("trends-by-produto-group").classList.toggle("hidden", orientation !== "produto");
+    aplicarOrientacao("trends", orientation);
     updateUrl();
     render();
   }
 
-  // Explorar's own axis-swap toggle — same idiom as setChangeOrientation.
   function setExploreOrientation(orientation) {
     state.exploreOrientation = orientation;
-    document.getElementById("explore-orientation-municipio").classList.toggle("active", orientation === "municipio");
-    document.getElementById("explore-orientation-produto").classList.toggle("active", orientation === "produto");
-    document.getElementById("explore-by-municipio-group").classList.toggle("hidden", orientation !== "municipio");
-    document.getElementById("explore-by-produto-group").classList.toggle("hidden", orientation !== "produto");
+    aplicarOrientacao("explore", orientation);
     updateUrl();
     render();
   }
@@ -2109,6 +2210,7 @@
     state.year = newYear;
     document.getElementById("year-slider").value = newYear;
     document.getElementById("year-value").textContent = newYear;
+    syncAnoParcial(newYear);
     updateUrl();
     if (state.view === "composition") {
       updateCompositionGuide();
@@ -2187,6 +2289,7 @@
     document.getElementById("label_change_orientation").textContent = t.label_change_orientation;
     document.getElementById("change-orientation-municipio").textContent = t.ranking_orientation_municipio;
     document.getElementById("change-orientation-produto").textContent = t.ranking_orientation_produto;
+    document.getElementById("change-orientation-pais").textContent = t.ranking_orientation_pais;
     document.getElementById("label_change_agg_level").textContent = t.label_agg_level;
     document.getElementById("label_change_category").textContent = t.label_category;
     document.getElementById("label_change_produto_level").textContent = t.label_agg_level;
@@ -2213,6 +2316,7 @@
     document.getElementById("label_trends_orientation").textContent = t.label_trends_orientation;
     document.getElementById("trends-orientation-municipio").textContent = t.ranking_orientation_municipio;
     document.getElementById("trends-orientation-produto").textContent = t.ranking_orientation_produto;
+    document.getElementById("trends-orientation-pais").textContent = t.ranking_orientation_pais;
     document.getElementById("label_trends_produto_level").textContent = t.label_agg_level;
     document.getElementById("label_trends_scope").textContent = t.label_ranking_scope;
     document.getElementById("trends-hint").textContent = withYearRange(t.trends_hint);
@@ -2221,9 +2325,11 @@
     document.getElementById("label_explore_orientation").textContent = t.label_explore_orientation;
     document.getElementById("explore-orientation-municipio").textContent = t.ranking_orientation_municipio;
     document.getElementById("explore-orientation-produto").textContent = t.ranking_orientation_produto;
+    document.getElementById("explore-orientation-pais").textContent = t.ranking_orientation_pais;
     document.getElementById("label_explore_produto_level").textContent = t.label_agg_level;
     document.getElementById("label_explore_scope").textContent = t.label_ranking_scope;
-    document.getElementById("label_explore_produtos").textContent = t.label_explore_produtos;
+    document.getElementById("label_explore_produtos").textContent =
+      state.exploreOrientation === "pais" ? t.label_explore_paises : t.label_explore_produtos;
     document.getElementById("label_map_mode").textContent = t.label_map_mode;
     document.getElementById("map-mode-forest").textContent = t.map_mode_forest;
     document.getElementById("map-mode-all").textContent = t.map_mode_all;
@@ -2262,6 +2368,7 @@
     document.getElementById("label_ranking_orientation").textContent = t.label_ranking_orientation;
     document.getElementById("ranking-orientation-municipio").textContent = t.ranking_orientation_municipio;
     document.getElementById("ranking-orientation-produto").textContent = t.ranking_orientation_produto;
+    document.getElementById("ranking-orientation-pais").textContent = t.ranking_orientation_pais;
     document.getElementById("label_ranking_produto_level").textContent = t.label_agg_level;
     document.getElementById("label_ranking_scope").textContent = t.label_ranking_scope;
 
@@ -2291,12 +2398,21 @@
     // region) — same precedence Composição's title already uses. Same
     // precedence for Tendências'/Explorar's own produto-orientation scope.
     const rankingScopeLabel = state.rankingScope || state.uf || null;
-    const trendsScopeLabel = state.trendsOrientation === "produto" ? (state.trendsScope || state.uf || null) : null;
-    const exploreScopeLabel = state.exploreOrientation === "produto" ? (state.exploreScope || state.uf || null) : null;
+    const trendsScopeLabel = state.trendsOrientation !== "municipio" ? (state.trendsScope || state.uf || null) : null;
+    const exploreScopeLabel = state.exploreOrientation !== "municipio" ? (state.exploreScope || state.uf || null) : null;
+    // Escolhe o título conforme a orientação. "pais" tem a mesma forma de
+    // "produto" (genérico ou com escopo), só muda o conjunto de chaves.
+    const tituloOrientado = (orientation, scopeLabel, chaveBase, fallback) => {
+      if (orientation === "municipio") return fallback();
+      const sufixo = orientation === "pais" ? "paises" : "produtos";
+      const comEscopo = t[`title_${chaveBase}_${sufixo}_scope`];
+      const semEscopo = t[`title_${chaveBase}_${sufixo}`];
+      return scopeLabel ? comEscopo.replace("{scope}", scopeLabel) : semEscopo;
+    };
+
     const titles = {
-      ranking: state.rankingOrientation === "produto"
-        ? (rankingScopeLabel ? t.title_ranking_produtos_scope.replace("{scope}", rankingScopeLabel) : t.title_ranking_produtos)
-        : (rankingFilterLabel ? t.title_ranking_product.replace("{produto}", rankingFilterLabel) : t.title_ranking),
+      ranking: tituloOrientado(state.rankingOrientation, rankingScopeLabel, "ranking",
+        () => rankingFilterLabel ? t.title_ranking_product.replace("{produto}", rankingFilterLabel) : t.title_ranking),
       composition: state.compositionOrientation === "estado"
         ? (compositionProdutoLabel
           ? (state.uf ? t.title_composition_estado_uf.replace("{categoria}", compositionProdutoLabel).replace("{uf}", state.uf) : t.title_composition_estado.replace("{categoria}", compositionProdutoLabel))
@@ -2304,24 +2420,21 @@
         : (state.compositionScope
           ? t.title_composition_muni.replace("{municipio}", state.compositionScope)
           : (state.uf ? t.title_composition_uf.replace("{uf}", state.uf) : t.title_composition)),
-      change: state.changeOrientation === "produto"
-        ? (changeScopeLabel ? t.title_change_produtos_scope.replace("{scope}", changeScopeLabel) : t.title_change_produtos)
-        : (changeFilterLabel ? t.title_change_category.replace("{categoria}", changeFilterLabel) : t.title_change),
-      trends: state.trendsOrientation === "produto"
-        ? (trendsScopeLabel ? t.title_trends_produtos_scope.replace("{scope}", trendsScopeLabel) : t.title_trends_produtos)
-        : (trendsFilterLabel ? t.title_trends_category.replace("{categoria}", trendsFilterLabel) : t.title_trends),
-      explore: state.exploreOrientation === "produto"
-        ? (exploreScopeLabel ? t.title_explore_produtos_scope.replace("{scope}", exploreScopeLabel) : t.title_explore_produtos)
-        : (exploreFilterLabel ? t.title_explore_category.replace("{categoria}", exploreFilterLabel) : t.title_explore),
+      change: tituloOrientado(state.changeOrientation, changeScopeLabel, "change",
+        () => changeFilterLabel ? t.title_change_category.replace("{categoria}", changeFilterLabel) : t.title_change),
+      trends: tituloOrientado(state.trendsOrientation, trendsScopeLabel, "trends",
+        () => trendsFilterLabel ? t.title_trends_category.replace("{categoria}", trendsFilterLabel) : t.title_trends),
+      explore: tituloOrientado(state.exploreOrientation, exploreScopeLabel, "explore",
+        () => exploreFilterLabel ? t.title_explore_category.replace("{categoria}", exploreFilterLabel) : t.title_explore),
       map: t[`title_map_${state.mapMode}`]
     };
     const subtitles = {
-      ranking: state.rankingOrientation === "produto" ? t.subtitle_ranking_produtos : t.subtitle_ranking,
+      ranking: state.rankingOrientation === "pais" ? t.subtitle_ranking_paises : (state.rankingOrientation === "produto" ? t.subtitle_ranking_produtos : t.subtitle_ranking),
       composition: state.compositionOrientation === "estado"
         ? t.subtitle_composition_estado
         : (state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition),
-      change: state.changeOrientation === "produto" ? t.subtitle_change_produtos : t.subtitle_change,
-      trends: state.trendsOrientation === "produto" ? t.subtitle_trends_produtos : (trendsFilterLabel ? t.subtitle_trends_category : t.subtitle_trends),
+      change: state.changeOrientation === "pais" ? t.subtitle_change_paises : (state.changeOrientation === "produto" ? t.subtitle_change_produtos : t.subtitle_change),
+      trends: state.trendsOrientation === "pais" ? t.subtitle_trends_paises : (state.trendsOrientation === "produto" ? t.subtitle_trends_produtos : (trendsFilterLabel ? t.subtitle_trends_category : t.subtitle_trends)),
       explore: exploreSubtitleText(t),
       map: t[`subtitle_map_${state.mapMode}`]
     };
@@ -2331,6 +2444,7 @@
     const slider = document.getElementById("year-slider");
     slider.value = state.year;
     document.getElementById("year-value").textContent = state.year;
+    syncAnoParcial(state.year);
 
     renderSparkline();
     if (state.view === "composition") {
@@ -2368,7 +2482,7 @@
     // Axis swap: rank products/categories for one município/estado/região
     // instead of ranking municípios for one product/category — see
     // renderRankingProdutos.
-    if (state.rankingOrientation === "produto") {
+    if (state.rankingOrientation !== "municipio") {
       renderRankingProdutos(t);
       return;
     }
@@ -2462,7 +2576,7 @@
   // reached via a click (which already tries to populate first) or a cold
   // URL deep link straight into "sec"/"sh2" with no category set.
   function renderRankingByCategory(t, level) {
-    const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
+    const index = compositionIndexFor(level);
     if (!index) {
       document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
       document.getElementById("region-total-label").textContent = "";
@@ -2488,6 +2602,11 @@
   // region-wide or per-state SH4 total is shipped (only per-municipio
   // rows), so it's summed client-side instead (see sh4ScopeRows).
   function renderRankingProdutos(t) {
+    const nivel = nivelCategoria(state.rankingOrientation, state.rankingProdutoLevel);
+    if (nivel === "pais") {
+      renderRankingProdutosCategoria(t, "pais");
+      return;
+    }
     if (state.rankingProdutoLevel === "sh4") {
       renderRankingProdutosSh4(t);
       return;
@@ -2496,12 +2615,12 @@
   }
 
   function renderRankingProdutosCategoria(t, level) {
-    const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
-    if (level === "sh2" && !index) {
+    const index = compositionIndexFor(level);
+    if (isLazyLevel(level) && !index) {
       document.getElementById(RANKING_IDS.rows).innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
       document.getElementById("region-total-label").textContent = "";
-      ensureSh2Loaded().then(() => {
-        if (state.view === "ranking" && state.rankingOrientation === "produto" && state.rankingProdutoLevel === "sh2") render();
+      ensureLevelLoaded(level).then(() => {
+        if (state.view === "ranking" && nivelCategoria(state.rankingOrientation, state.rankingProdutoLevel) === level) render();
       }).catch(onLazyLoadFailed);
       return;
     }
@@ -2697,6 +2816,7 @@
   // time, so a single series object works under a lang toggle without
   // rebuilding it.
   function categoryDictFor(level) {
+    if (level === "pais") return productsPais;
     return level === "sh2" ? productsSh2 : productsSec;
   }
 
@@ -2791,7 +2911,7 @@
   // município's own trend.
   function renderCompositionByEstado() {
     const level = state.compositionAgg;
-    const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
+    const index = compositionIndexFor(level);
     if (!state.compositionProduto || !index.byProduto.has(state.compositionProduto)) {
       populateCompositionProdutoSelect();
     }
@@ -2854,11 +2974,39 @@
   // buildStateCompositionRows), or the whole-region precomputed series —
   // in that order. One place for this rule means every view's scope picker
   // behaves identically instead of four near-copies drifting apart.
+  // ---- Níveis da dimensão categórica ----
+  //
+  // "sec" e "sh2" são taxonomias de produto; "pais" é o destino. Os três
+  // têm exatamente a mesma forma (município x categoria x ano, esparso),
+  // então tudo que já existia para produto funciona para país sem ramo
+  // novo — só precisa que estes três despachos conheçam o nível. É por
+  // isso que a orientação "Países" custa tão pouco código.
+  function compositionIndexFor(level) {
+    if (level === "pais") return compositionIndexPais;
+    if (level === "sh2") return compositionIndexSh2;
+    return compositionIndexSec;
+  }
+
+  function compositionRowsFor(level) {
+    if (level === "pais") return compositionPais;
+    if (level === "sh2") return compositionSh2;
+    return compositionSec;
+  }
+
+  // Níveis que chegam por fetch tardio. "sec" já vem no carregamento.
+  function isLazyLevel(level) {
+    return level === "sh2" || level === "pais";
+  }
+
+  function ensureLevelLoaded(level) {
+    return level === "pais" ? ensurePaisLoaded() : ensureSh2Loaded();
+  }
+
   function scopeCompositionRows(level, scope, uf) {
-    const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
+    const index = compositionIndexFor(level);
     if (scope) return index.byMunicipio.get(scope) || [];
     if (uf) return buildStateCompositionRows(index, uf);
-    return level === "sh2" ? compositionSh2 : compositionSec;
+    return compositionRowsFor(level);
   }
 
   function showCompositionLoading() {
@@ -3093,7 +3241,7 @@
     // Axis swap: instead of comparing municípios for one product/category,
     // compare product categories for one município/state — see
     // renderChangeByProduto.
-    if (state.changeOrientation === "produto") {
+    if (state.changeOrientation !== "municipio") {
       renderChangeByProduto();
       return;
     }
@@ -3119,12 +3267,12 @@
   // the exact same compositionIndex*/compositionSec/Sh2 data and 3-way
   // scope precedence Composição/Ranking already use.
   function renderChangeByProduto() {
-    const level = state.changeProdutoLevel;
-    const index = level === "sh2" ? compositionIndexSh2 : compositionIndexSec;
-    if (level === "sh2" && !index) {
+    const level = nivelCategoria(state.changeOrientation, state.changeProdutoLevel);
+    const index = compositionIndexFor(level);
+    if (isLazyLevel(level) && !index) {
       document.getElementById("change-rows").innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
-      ensureSh2Loaded().then(() => {
-        if (state.view === "change" && state.changeOrientation === "produto" && state.changeProdutoLevel === "sh2") render();
+      ensureLevelLoaded(level).then(() => {
+        if (state.view === "change" && nivelCategoria(state.changeOrientation, state.changeProdutoLevel) === level) render();
       }).catch(onLazyLoadFailed);
       return;
     }
@@ -3392,7 +3540,7 @@
   // self-healing rationale as the single-category populate*Select
   // functions, just defaulting to several values instead of one.
   function populateExploreProdutosSelect() {
-    const level = state.exploreProdutoLevel;
+    const level = nivelCategoria(state.exploreOrientation, state.exploreProdutoLevel);
     const select = document.getElementById("explore-produtos-select");
     select.innerHTML = "";
     const items = categoryOptionsFor(level);
@@ -3495,8 +3643,8 @@
   // comparing product categories instead of municípios. Returns null only
   // when SH2 is selected but not loaded yet.
   function trendsProdutoDataSource() {
-    const level = state.trendsProdutoLevel;
-    if (level === "sh2" && !compositionIndexSh2) return null;
+    const level = nivelCategoria(state.trendsOrientation, state.trendsProdutoLevel);
+    if (isLazyLevel(level) && !compositionIndexFor(level)) return null;
     return categoryRowsToProdutoMap(scopeCompositionRows(level, state.trendsScope, state.uf));
   }
 
@@ -3518,13 +3666,13 @@
 
     // Axis swap: instead of top-N municípios (for one product/category),
     // show top-N product categories, for one município/estado/região.
-    if (state.trendsOrientation === "produto") {
-      const level = state.trendsProdutoLevel;
+    if (state.trendsOrientation !== "municipio") {
+      const level = nivelCategoria(state.trendsOrientation, state.trendsProdutoLevel);
       const dataSource = trendsProdutoDataSource();
       if (!dataSource) {
         grid.innerHTML = `<div class="prodrank-loading">${loadingMarkup()}</div>`;
-        ensureSh2Loaded().then(() => {
-          if (state.view === "trends" && state.trendsOrientation === "produto" && state.trendsProdutoLevel === level) render();
+        ensureLevelLoaded(level).then(() => {
+          if (state.view === "trends" && nivelCategoria(state.trendsOrientation, state.trendsProdutoLevel) === level) render();
         }).catch(onLazyLoadFailed);
         return;
       }
@@ -3634,7 +3782,7 @@
   // Repositions each card's selected-year marker without rebuilding the
   // grid — called on every autoplay tick, so it needs to be cheap.
   function updateTrendsMarkers() {
-    const dataSource = state.trendsOrientation === "produto" ? trendsProdutoDataSource() : trendsDataSource();
+    const dataSource = state.trendsOrientation !== "municipio" ? trendsProdutoDataSource() : trendsDataSource();
     if (!dataSource) return; // SH2 mid-load — renderTrends() owns showing the loading state
     const grid = document.getElementById("trends-grid");
     for (const card of grid.children) {
@@ -3681,7 +3829,7 @@
   // every downstream consumer (legend, hover tooltip) reads a plain string
   // instead of needing to know which orientation built the series.
   function buildExploreSeries() {
-    if (state.exploreOrientation === "produto") return buildExploreProdutoSeries();
+    if (state.exploreOrientation !== "municipio") return buildExploreProdutoSeries();
 
     const dataSource = exploreDataSource();
     if (!dataSource) return null;
@@ -3709,8 +3857,8 @@
   // município/estado/região — see scopeCompositionRows) plotted as
   // independent lines, instead of hand-picked municípios.
   function buildExploreProdutoSeries() {
-    const level = state.exploreProdutoLevel;
-    if (level === "sh2" && !compositionIndexSh2) return null;
+    const level = nivelCategoria(state.exploreOrientation, state.exploreProdutoLevel);
+    if (isLazyLevel(level) && !compositionIndexFor(level)) return null;
     const dataSource = categoryRowsToProdutoMap(scopeCompositionRows(level, state.exploreScope, state.uf));
 
     const years = [];
@@ -3751,11 +3899,15 @@
       }
       loadingDiv.innerHTML = loadingMarkup();
       const orientation = state.exploreOrientation;
-      const level = orientation === "produto" ? state.exploreProdutoLevel : state.exploreAggLevel;
-      ensureSh2Loaded().then(() => {
+      const level = orientation !== "municipio"
+        ? nivelCategoria(orientation, state.exploreProdutoLevel)
+        : state.exploreAggLevel;
+      ensureLevelLoaded(level).then(() => {
         if (orientation === "municipio") populateExploreCategorySelect();
         const stillSameContext = state.view === "explore" && state.exploreOrientation === orientation &&
-          (orientation === "produto" ? state.exploreProdutoLevel === level : state.exploreAggLevel === level);
+          (orientation !== "municipio"
+            ? nivelCategoria(orientation, state.exploreProdutoLevel) === level
+            : state.exploreAggLevel === level);
         if (stillSameContext) render();
       }).catch(onLazyLoadFailed);
       return;
@@ -3832,7 +3984,19 @@
         flushSegment();
       } else {
         const pts = s.years.map((y, j) => `${xFor(y).toFixed(1)},${yFor(s.values[j]).toFixed(1)}`);
-        addEl("path", { class: "explore-line", stroke: s.color, d: `M${pts.join(" L")}` });
+        // Mesmo tratamento da sparkline: o trecho que cai num ano
+        // incompleto sai tracejado, senão o desenho afirma uma queda que é
+        // só o ano ter menos meses. O trecho tracejado recomeça no último
+        // ponto sólido para não abrir vão.
+        const corte = s.years.findIndex((y) => isAnoParcial(y));
+        const solidos = corte === -1 ? pts : pts.slice(0, corte);
+        const parciais = corte === -1 ? [] : pts.slice(Math.max(0, corte - 1));
+        if (solidos.length > 1) {
+          addEl("path", { class: "explore-line", stroke: s.color, d: `M${solidos.join(" L")}` });
+        }
+        if (parciais.length > 1) {
+          addEl("path", { class: "explore-line explore-line-partial", stroke: s.color, d: `M${parciais.join(" L")}` });
+        }
       }
     }
 
@@ -3878,7 +4042,7 @@
     const tooltip = document.getElementById("explore-tooltip");
 
     area.addEventListener("pointermove", (e) => {
-      const pickedCount = state.exploreOrientation === "produto" ? state.exploreProdutos.length : state.exploreMunis.length;
+      const pickedCount = state.exploreOrientation !== "municipio" ? state.exploreProdutos.length : state.exploreMunis.length;
       if (state.view !== "explore" || !pickedCount) return;
       const svg = document.getElementById("explore-svg");
       const rect = svg.getBoundingClientRect();
@@ -3937,7 +4101,16 @@
 
     const pts = sparkSeries.map((d) => `${sparkXFor(d.year).toFixed(1)},${sparkYFor(d.value).toFixed(1)}`);
 
-    document.getElementById("spark-line").setAttribute("d", pts.length ? `M${pts.join(" L")}` : "");
+    // A linha sólida vai até o último ano completo; o que passa disso sai
+    // tracejado. Sem isso o desenho afirma uma queda que é só o ano em
+    // curso ter menos meses que os anteriores.
+    const corte = sparkSeries.findIndex((d) => isAnoParcial(d.year));
+    const solidos = corte === -1 ? pts : pts.slice(0, corte);
+    // O trecho tracejado começa no último ponto sólido, senão fica um vão.
+    const parciais = corte === -1 ? [] : pts.slice(Math.max(0, corte - 1));
+
+    document.getElementById("spark-line").setAttribute("d", solidos.length ? `M${solidos.join(" L")}` : "");
+    document.getElementById("spark-line-partial").setAttribute("d", parciais.length > 1 ? `M${parciais.join(" L")}` : "");
     document.getElementById("spark-area").setAttribute("d", pts.length
       ? `M${sparkXFor(sparkSeries[0].year).toFixed(1)},${SPARK_H} L${pts.join(" L")} L${sparkXFor(sparkSeries[sparkSeries.length - 1].year).toFixed(1)},${SPARK_H} Z`
       : "");

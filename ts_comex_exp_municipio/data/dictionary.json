@@ -1,4 +1,8 @@
 {
   "year_inicio": 1997,
-  "year_final": 2025
+  "year_final": 2026,
+  "year_final_completo": 2025,
+  "anos_parciais": {
+    "2026": 9
+  }
 }

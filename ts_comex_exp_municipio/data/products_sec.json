@@ -25,10 +25,6 @@
       "label": "Madeira, carvão vegetal e obras de madeira; Cortiça e suas obras; Obras de espartaria ou de cestaria"
     },
     {
-      "var": "Máquinas e aparelhos, material elétrico e suas partes; Aparelhos de gravação ou reprodução de som, aparelhos de gravação ou reprodução de imagens e de som em televisão, e suas partes e acessórios",
-      "label": "Máquinas e aparelhos, material elétrico e suas partes; Aparelhos de gravação ou reprodução de som, aparelhos de gravação ou reprodução de imagens e de som em televisão, e suas partes e acessórios"
-    },
-    {
       "var": "Material de transporte",
       "label": "Material de transporte"
     },
@@ -45,6 +41,10 @@
       "label": "Metais comuns e suas obras"
     },
     {
+      "var": "Máquinas e aparelhos, material elétrico e suas partes; Aparelhos de gravação ou reprodução de som, aparelhos de gravação ou reprodução de imagens e de som em televisão, e suas partes e acessórios",
+      "label": "Máquinas e aparelhos, material elétrico e suas partes; Aparelhos de gravação ou reprodução de som, aparelhos de gravação ou reprodução de imagens e de som em televisão, e suas partes e acessórios"
+    },
+    {
       "var": "Objetos de arte, de coleção e antiguidades",
       "label": "Objetos de arte, de coleção e antiguidades"
     },
@@ -59,10 +59,6 @@
     {
       "var": "Peles, couros, peles com pelo e obras destas matérias; Artigos de correeiro ou de seleiro; Artigos de viagem, bolsas e artefatos semelhantes; Obras de tripa",
       "label": "Peles, couros, peles com pelo e obras destas matérias; Artigos de correeiro ou de seleiro; Artigos de viagem, bolsas e artefatos semelhantes; Obras de tripa"
-    },
-    {
-      "var": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas",
-      "label": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas"
     },
     {
       "var": "Plásticos e suas obras; Borracha e suas obras",
@@ -83,6 +79,10 @@
     {
       "var": "Produtos minerais",
       "label": "Produtos minerais"
+    },
+    {
+      "var": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas",
+      "label": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas"
     },
     {
       "var": "Transações especiais",
@@ -115,10 +115,6 @@
       "label": "Wood and articles of wood; Wood charcoal; Cork and articles of cork; Manufactures of straw, of esparto or of other plaiting materials; Basketware and wickerwork"
     },
     {
-      "var": "Máquinas e aparelhos, material elétrico e suas partes; Aparelhos de gravação ou reprodução de som, aparelhos de gravação ou reprodução de imagens e de som em televisão, e suas partes e acessórios",
-      "label": "Machinery and mechanical appliances; Electrical equipment and parts thereof; Sound recorders and reproducers, sound recorders and producers of television image; Parts and accessoires of such articles"
-    },
-    {
       "var": "Material de transporte",
       "label": "Vehicles, aircraft, vessels and associated transport equipment"
     },
@@ -135,6 +131,10 @@
       "label": "Base metals and articles of base metal"
     },
     {
+      "var": "Máquinas e aparelhos, material elétrico e suas partes; Aparelhos de gravação ou reprodução de som, aparelhos de gravação ou reprodução de imagens e de som em televisão, e suas partes e acessórios",
+      "label": "Machinery and mechanical appliances; Electrical equipment and parts thereof; Sound recorders and reproducers, sound recorders and producers of television image; Parts and accessoires of such articles"
+    },
+    {
       "var": "Objetos de arte, de coleção e antiguidades",
       "label": "Works of art, collectors' pieces and antiques"
     },
@@ -149,10 +149,6 @@
     {
       "var": "Peles, couros, peles com pelo e obras destas matérias; Artigos de correeiro ou de seleiro; Artigos de viagem, bolsas e artefatos semelhantes; Obras de tripa",
       "label": "Raw hides and skins, leather, furskins and articles thereof; Saddlery and harness; Travel goods, handbags and similar containers; Articles of animal gut (other than silkworm gut)"
-    },
-    {
-      "var": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas",
-      "label": "Natural or cultured pearls, precious or semi-precious stones, precious metals, metals clad with precious metal, and articles thereof; Imitation jewellery; Coins"
     },
     {
       "var": "Plásticos e suas obras; Borracha e suas obras",
@@ -173,6 +169,10 @@
     {
       "var": "Produtos minerais",
       "label": "Mineral products"
+    },
+    {
+      "var": "Pérolas naturais ou cultivadas, pedras preciosas ou semipreciosas e semelhantes, metais preciosos, metais folheados ou chapeados de metais preciosos, e suas obras; Bijuteria; Moedas",
+      "label": "Natural or cultured pearls, precious or semi-precious stones, precious metals, metals clad with precious metal, and articles thereof; Imitation jewellery; Coins"
     },
     {
       "var": "Transações especiais",
