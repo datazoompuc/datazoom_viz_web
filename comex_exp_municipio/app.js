@@ -1,7 +1,7 @@
 // Data Zoom Amazônia — app_ts_comex_exp_municipio, JS rebuild PoC
 //
 // Static rebuild of the Shiny app: data is pre-exported by
-// data-raw/web/export_comex_exp_municipio.R into web/comex_exp_municipio/data/.
+// data-raw/export_web/export_comex_exp_municipio.R into web/comex_exp_municipio/data/.
 // Everything below runs client-side against those static files — no R
 // server, no shinyapps.io.
 //
@@ -2837,7 +2837,7 @@
 
   // No region-wide or per-state SH4 total is shipped (product_ranking.json
   // only carries per-municipio rows — see
-  // data-raw/web/export_comex_exp_municipio.R), so "whole
+  // data-raw/export_web/export_comex_exp_municipio.R), so "whole
   // region" or "whole state" scope is summed client-side from the raw
   // cells instead, mirroring buildStateCompositionRows' same summing
   // approach for SEC/SH2. A specific município still goes through this
