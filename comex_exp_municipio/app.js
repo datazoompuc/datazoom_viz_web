@@ -1,7 +1,7 @@
 // Data Zoom Amazônia — app_ts_comex_exp_municipio, JS rebuild PoC
 //
 // Static rebuild of the Shiny app: data is pre-exported by
-// data-raw/export_comex_exp_municipio_web.R into web/comex_exp_municipio/data/.
+// data-raw/web/export_comex_exp_municipio.R into web/comex_exp_municipio/data/.
 // Everything below runs client-side against those static files — no R
 // server, no shinyapps.io.
 //
@@ -24,10 +24,13 @@
       view_ranking: "Ranking",
       view_composition: "Composição",
       title_ranking: "Ranking de municípios exportadores",
-      subtitle_ranking: "Valor exportado (US$), por município",
+      subtitle_ranking: "Valor exportado ({unit}), por município",
+      subtitle_ranking_kg: "Quantidade exportada ({unit}), por município",
       title_composition: "Composição das exportações da Amazônia Legal",
-      subtitle_composition: "Valor exportado (US$) por categoria de produto, empilhado por ano — passe o mouse para ver o detalhamento",
-      ranking_axis_label: "Valor exportado (US$)",
+      subtitle_composition: "Valor exportado ({unit}) por categoria de produto, empilhado por ano — passe o mouse para ver o detalhamento",
+      subtitle_composition_kg: "Quantidade exportada ({unit}) por categoria de produto, empilhado por ano — passe o mouse para ver o detalhamento",
+      ranking_axis_label: "Valor exportado ({unit})",
+      ranking_axis_label_kg: "Quantidade exportada ({unit})",
       region_total_prefix: "Total Amazônia Legal: ",
       label_no_data: "Sem dado",
       label_others: "Outros",
@@ -44,7 +47,8 @@
       title_composition_uf: "Composição das exportações — {uf}",
       label_year_a: "Ano A",
       label_year_b: "Ano B",
-      change_axis_label: "Valor exportado (US$)",
+      change_axis_label: "Valor exportado ({unit})",
+      change_axis_label_kg: "Quantidade exportada ({unit})",
       view_trends: "Tendências",
       title_trends: "Tendências por município",
       title_trends_category: "Tendências por município — {categoria}",
@@ -59,13 +63,16 @@
       title_explore: "Comparar municípios",
       title_explore_category: "Comparar municípios — {categoria}",
       subtitle_explore: "Valor exportado ({unit}) ao longo do tempo, municípios selecionados",
+      subtitle_explore_kg: "Quantidade exportada ({unit}) ao longo do tempo, municípios selecionados",
       subtitle_explore_category: "Valor exportado ({unit}) na categoria, ao longo do tempo, municípios selecionados",
+      subtitle_explore_category_kg: "Quantidade exportada ({unit}) na categoria, ao longo do tempo, municípios selecionados",
       label_explore_munis: "Municípios (Ctrl/Cmd+clique para vários)",
       explore_hint: "Ordenado por valor total exportado",
       label_explore_orientation: "Explorar por",
       title_explore_produtos: "Comparar categorias",
       title_explore_produtos_scope: "Comparar categorias — {scope}",
       subtitle_explore_produtos: "Valor exportado ({unit}) ao longo do tempo, categorias selecionadas",
+      subtitle_explore_produtos_kg: "Quantidade exportada ({unit}) ao longo do tempo, categorias selecionadas",
       label_explore_produtos: "Categorias (Ctrl/Cmd+clique para várias)",
       unit_explore_dollar: "US$",
       unit_explore_log: "log US$",
@@ -83,7 +90,8 @@
       title_composition_estado: "Composição por estado — {categoria}",
       title_composition_estado_uf: "Composição por estado — {categoria} ({uf})",
       title_composition_estado_base: "Composição por estado",
-      subtitle_composition_estado: "Valor exportado (US$) por estado, empilhado por ano — passe o mouse para ver o detalhamento",
+      subtitle_composition_estado: "Valor exportado ({unit}) por estado, empilhado por ano — passe o mouse para ver o detalhamento",
+      subtitle_composition_estado_kg: "Quantidade exportada ({unit}) por estado, empilhado por ano — passe o mouse para ver o detalhamento",
       label_agg_level: "Nível de agregação",
       agg_level_sec: "Seção (SEC)",
       agg_level_sh2: "Capítulo (SH2)",
@@ -96,7 +104,8 @@
       ranking_orientation_pais: "Países",
       title_ranking_paises: "Ranking de países de destino",
       title_ranking_paises_scope: "Ranking de países de destino — {scope}",
-      subtitle_ranking_paises: "Valor exportado (US$), por país de destino",
+      subtitle_ranking_paises: "Valor exportado ({unit}), por país de destino",
+      subtitle_ranking_paises_kg: "Quantidade exportada ({unit}), por país de destino",
       title_change_paises: "Variação por país de destino",
       title_change_paises_scope: "Variação por país de destino — {scope}",
       subtitle_change_paises: "Países ordenados pela variação no valor exportado",
@@ -106,11 +115,13 @@
       title_explore_paises: "Comparar países de destino",
       title_explore_paises_scope: "Comparar países de destino — {scope}",
       subtitle_explore_paises: "Valor exportado ({unit}) ao longo do tempo, países selecionados",
+      subtitle_explore_paises_kg: "Quantidade exportada ({unit}) ao longo do tempo, países selecionados",
       label_explore_paises: "Países (Ctrl/Cmd+clique para vários)",
       label_ranking_scope: "Escopo",
       title_ranking_produtos: "Ranking de produtos exportados",
       title_ranking_produtos_scope: "Ranking de produtos exportados — {scope}",
-      subtitle_ranking_produtos: "Valor exportado (US$), por produto/categoria",
+      subtitle_ranking_produtos: "Valor exportado ({unit}), por produto/categoria",
+      subtitle_ranking_produtos_kg: "Quantidade exportada ({unit}), por produto/categoria",
       label_ranking_product_select: "Produto",
       label_ranking_product_search: "Ou busque outro produto (todos os SH4)",
       ranking_product_all: "Todos os produtos",
@@ -123,6 +134,14 @@
       prodrank_cat_industria: "Indústria e manufaturados",
       ranking_product_total_prefix: "Total exportado no ano: ",
       label_loading: "Carregando…",
+      label_medida: "Medida",
+      medida_valor: "Valor",
+      medida_kg: "Quantidade",
+      medida_hint_produto: "Somar quilos de produtos diferentes compara peso, não importância econômica",
+      unit_kg: "kg",
+      unit_t: "t",
+      unit_mil_t: "mil t",
+      unit_mi_t: "mi t",
       year_partial: "parcial · {n} meses",
       combo_placeholder: "Buscar…",
       combo_no_match: "Nenhum resultado",
@@ -166,10 +185,13 @@
       view_ranking: "Ranking",
       view_composition: "Composition",
       title_ranking: "Ranking of exporting municipalities",
-      subtitle_ranking: "Export value (US$), by municipality",
+      subtitle_ranking: "Export value ({unit}), by municipality",
+      subtitle_ranking_kg: "Export quantity ({unit}), by municipality",
       title_composition: "Legal Amazon export composition",
-      subtitle_composition: "Export value (US$) by product category, stacked per year — hover to see the breakdown",
-      ranking_axis_label: "Export value (US$)",
+      subtitle_composition: "Export value ({unit}) by product category, stacked per year — hover to see the breakdown",
+      subtitle_composition_kg: "Export quantity ({unit}) by product category, stacked per year — hover to see the breakdown",
+      ranking_axis_label: "Export value ({unit})",
+      ranking_axis_label_kg: "Export quantity ({unit})",
       region_total_prefix: "Legal Amazon total: ",
       label_no_data: "No data",
       label_others: "Other",
@@ -186,7 +208,8 @@
       title_composition_uf: "Export composition — {uf}",
       label_year_a: "Year A",
       label_year_b: "Year B",
-      change_axis_label: "Export value (US$)",
+      change_axis_label: "Export value ({unit})",
+      change_axis_label_kg: "Export quantity ({unit})",
       view_trends: "Trends",
       title_trends: "Trends by municipality",
       title_trends_category: "Trends by municipality — {categoria}",
@@ -201,13 +224,16 @@
       title_explore: "Compare municipalities",
       title_explore_category: "Compare municipalities — {categoria}",
       subtitle_explore: "Export value ({unit}) over time, selected municipalities",
+      subtitle_explore_kg: "Export quantity ({unit}) over time, selected municipalities",
       subtitle_explore_category: "Export value ({unit}) in the category, over time, selected municipalities",
+      subtitle_explore_category_kg: "Export quantity ({unit}) in the category, over time, selected municipalities",
       label_explore_munis: "Municipalities (Ctrl/Cmd+click for multiple)",
       explore_hint: "Sorted by total export value",
       label_explore_orientation: "Explore by",
       title_explore_produtos: "Compare categories",
       title_explore_produtos_scope: "Compare categories — {scope}",
       subtitle_explore_produtos: "Export value ({unit}) over time, selected categories",
+      subtitle_explore_produtos_kg: "Export quantity ({unit}) over time, selected categories",
       label_explore_produtos: "Categories (Ctrl/Cmd+click for multiple)",
       unit_explore_dollar: "US$",
       unit_explore_log: "log US$",
@@ -225,7 +251,8 @@
       title_composition_estado: "Composition by state — {categoria}",
       title_composition_estado_uf: "Composition by state — {categoria} ({uf})",
       title_composition_estado_base: "Composition by state",
-      subtitle_composition_estado: "Export value (US$) by state, stacked per year — hover to see the breakdown",
+      subtitle_composition_estado: "Export value ({unit}) by state, stacked per year — hover to see the breakdown",
+      subtitle_composition_estado_kg: "Export quantity ({unit}) by state, stacked per year — hover to see the breakdown",
       label_agg_level: "Aggregation level",
       agg_level_sec: "Section (SEC)",
       agg_level_sh2: "Chapter (SH2)",
@@ -238,7 +265,8 @@
       ranking_orientation_pais: "Countries",
       title_ranking_paises: "Ranking of destination countries",
       title_ranking_paises_scope: "Ranking of destination countries — {scope}",
-      subtitle_ranking_paises: "Export value (US$), by destination country",
+      subtitle_ranking_paises: "Export value ({unit}), by destination country",
+      subtitle_ranking_paises_kg: "Export quantity ({unit}), by destination country",
       title_change_paises: "Change by destination country",
       title_change_paises_scope: "Change by destination country — {scope}",
       subtitle_change_paises: "Countries ranked by change in export value",
@@ -248,11 +276,13 @@
       title_explore_paises: "Compare destination countries",
       title_explore_paises_scope: "Compare destination countries — {scope}",
       subtitle_explore_paises: "Export value ({unit}) over time, selected countries",
+      subtitle_explore_paises_kg: "Export quantity ({unit}) over time, selected countries",
       label_explore_paises: "Countries (Ctrl/Cmd+click for multiple)",
       label_ranking_scope: "Scope",
       title_ranking_produtos: "Ranking of exported products",
       title_ranking_produtos_scope: "Ranking of exported products — {scope}",
-      subtitle_ranking_produtos: "Export value (US$), by product/category",
+      subtitle_ranking_produtos: "Export value ({unit}), by product/category",
+      subtitle_ranking_produtos_kg: "Export quantity ({unit}), by product/category",
       label_ranking_product_select: "Product",
       label_ranking_product_search: "Or search another product (all SH4)",
       ranking_product_all: "All products",
@@ -265,6 +295,14 @@
       prodrank_cat_industria: "Industry & manufactured goods",
       ranking_product_total_prefix: "Total exported that year: ",
       label_loading: "Loading…",
+      label_medida: "Measure",
+      medida_valor: "Value",
+      medida_kg: "Quantity",
+      medida_hint_produto: "Adding up kilos across different products compares weight, not economic importance",
+      unit_kg: "kg",
+      unit_t: "t",
+      unit_mil_t: "thousand t",
+      unit_mi_t: "million t",
       year_partial: "partial · {n} months",
       combo_placeholder: "Search…",
       combo_no_match: "No matches",
@@ -323,9 +361,65 @@
   // nothing else about them depends on it being adjustable.
   const TOP_N = 15;
 
+  // ---- Medidas: valor exportado (US$) e quantidade (kg) ----
+  //
+  // As duas viajam juntas em todo arquivo de dados, na mesma estrutura
+  // esparsa (ver o export). Trocar de medida não busca nada: só
+  // reconstrói os índices derivados a partir dos dados que já estão em
+  // memória, o que mantém o botão instantâneo.
+  const MEDIDAS = ["valor", "kg"];
+
+  // Nome do campo nas linhas de objeto ({municipio, ano, valor, kg}).
+  // Refaz todo índice derivado a partir dos dados crus que já estão em
+  // memória. Só o que foi carregado é reconstruído: se o usuário nunca
+  // abriu SH2, país ou o ranking SH4, esses continuam nulos e serão
+  // construídos na medida corrente quando forem buscados.
+  function rebuildPorMedida() {
+    totalsByYear = groupByYear(municipalityTotals);
+    regionTotalByYear = new Map(regionTotals.map((r) => [r.ano, r[campoMedida()]]));
+    ({ totalsByMunicipio, municipioMeta, ufList } = buildMunicipioIndex(municipalityTotals));
+    compositionSeriesSec = buildCompositionSeries(compositionSec, dictionary);
+    compositionIndexSec = buildCompositionIndexes(muniCompositionSec);
+    compositionSecView = projetarMedida(compositionSec);
+
+    if (compositionSh2) {
+      compositionSeriesSh2 = buildCompositionSeries(compositionSh2, dictionary);
+      compositionIndexSh2 = buildCompositionIndexes(muniCompositionSh2);
+      compositionSh2View = projetarMedida(compositionSh2);
+    }
+    if (compositionPaisRaw) {
+      compositionPais = compositionPaisRaw.map((r) => ({ produto: r.pais, ano: r.ano, valor: r.valor, kg: r.kg }));
+      compositionIndexPais = buildCompositionIndexes(muniCompositionPaisRaw);
+      compositionPaisView = projetarMedida(compositionPais);
+    }
+    if (productRanking) {
+      productRankingRowsByCode = buildProductRankingIndex(productRanking);
+    }
+    // activeCompositionSeries aponta para uma das séries acima; render()
+    // o reatribui, mas deixá-lo apontando para a série antiga entre a
+    // reconstrução e o render é o tipo de coisa que vira bug sutil.
+    activeCompositionSeries = compositionSeriesSec;
+  }
+
+  function lerMedidaDaUrl() {
+    const m = new URLSearchParams(location.search).get("medida");
+    state.medida = MEDIDAS.includes(m) ? m : "valor";
+  }
+
+  function campoMedida() {
+    return state.medida === "kg" ? "kg" : "valor";
+  }
+
+  // Posição nas células esparsas ([idx, idx, ano, valor, kg]).
+  function posMedida() {
+    return state.medida === "kg" ? 4 : 3;
+  }
+
   const state = {
     lang: "pt",
     year: null,
+    // "valor" (US$ FOB) ou "kg" (quantidade). Global: vale para todas as telas.
+    medida: "valor",
     view: "ranking", // "ranking" | "composition" | "change" | "trends" | "explore"
     playing: false,
     playTimer: null,
@@ -421,6 +515,8 @@
   // (1,8 MB — a grade município x país x ano tem só 2,7% de densidade).
   let paisLoadPromise = null;
   let compositionPais, productsPais, compositionIndexPais;
+  let compositionSecView, compositionSh2View, compositionPaisView; // projetadas na medida corrente
+  let compositionPaisRaw, muniCompositionPaisRaw; // crus, para reconstruir ao trocar de medida
   let compositionSeriesSh2;
   let compositionIndexSh2;
   let totalsByYear; // year -> [{municipio, valor}], sorted descending
@@ -555,12 +651,14 @@
     productsSec = prod;
     muniCompositionSec = muniComp;
 
-    totalsByYear = groupByYear(municipalityTotals);
-    regionTotalByYear = new Map(regionTotals.map((r) => [r.ano, r.valor]));
-    compositionSeriesSec = buildCompositionSeries(compositionSec, dictionary);
-    activeCompositionSeries = compositionSeriesSec;
-    ({ totalsByMunicipio, municipioMeta, ufList } = buildMunicipioIndex(municipalityTotals));
-    compositionIndexSec = buildCompositionIndexes(muniCompositionSec);
+    // A medida sai da URL antes de qualquer índice, porque todos são
+    // construídos na medida corrente. initState() completo não serve aqui:
+    // ele valida state.uf contra ufList, que só existe depois de
+    // buildMunicipioIndex. Abrir com ?medida=kg sem isto montava os índices
+    // em valor e só o rótulo acompanhava — o total da região aparecia em
+    // dólar com unidade de peso.
+    lerMedidaDaUrl();
+    rebuildPorMedida();
 
     initState();
     initControls();
@@ -602,10 +700,14 @@
   }
 
   function groupByYear(rows) {
+    // Projeta para a medida corrente em vez de devolver a linha crua: todo
+    // consumidor daqui lê `.valor`, então normalizar na origem evita ter
+    // que ensinar cada um deles sobre a troca de medida.
+    const campo = campoMedida();
     const byYear = new Map();
     for (const row of rows) {
       if (!byYear.has(row.ano)) byYear.set(row.ano, []);
-      byYear.get(row.ano).push(row);
+      byYear.get(row.ano).push({ municipio: row.municipio, ano: row.ano, valor: row[campo] });
     }
     for (const list of byYear.values()) list.sort((a, b) => b.valor - a.valor);
     return byYear;
@@ -617,6 +719,7 @@
   // re-fetched from anywhere else, same pattern the CEMPRE map used for
   // its own compare-mode state filter.
   function buildMunicipioIndex(rows) {
+    const campo = campoMedida();
     const byMuni = new Map();
     const meta = new Map();
     for (const row of rows) {
@@ -625,7 +728,7 @@
         const uf = row.municipio.slice(row.municipio.lastIndexOf(" - ") + 3);
         meta.set(row.municipio, { uf });
       }
-      byMuni.get(row.municipio).set(row.ano, row.valor);
+      byMuni.get(row.municipio).set(row.ano, row[campo]);
     }
     const ufs = Array.from(new Set(Array.from(meta.values()).map((m) => m.uf))).sort();
     return { totalsByMunicipio: byMuni, municipioMeta: meta, ufList: ufs };
@@ -654,7 +757,10 @@
   function buildCompositionIndexes(data) {
     const byMunicipio = new Map();
     const byProduto = new Map();
-    for (const [municipioIdx, produtoIdx, ano, valor] of data.cells) {
+    const pos = posMedida();
+    for (const cell of data.cells) {
+      const [municipioIdx, produtoIdx, ano] = cell;
+      const valor = cell[pos];
       const municipio = data.municipios[municipioIdx];
       const produto = data.produtos[produtoIdx];
       if (!byMunicipio.has(municipio)) byMunicipio.set(municipio, []);
@@ -684,6 +790,7 @@
       productsSh2 = prod;
       compositionSeriesSh2 = buildCompositionSeries(compositionSh2, dictionary);
       compositionIndexSh2 = buildCompositionIndexes(muniCompositionSh2);
+      compositionSh2View = projetarMedida(compositionSh2);
     }), () => { sh2LoadPromise = null; });
     return sh2LoadPromise;
   }
@@ -700,13 +807,16 @@
       // remapeados para o nome genérico que todo o resto do app usa para
       // "a dimensão categórica". Duas linhas aqui evitam um ramo paralelo
       // em cada função de render.
-      compositionPais = comp.map((r) => ({ produto: r.pais, ano: r.ano, valor: r.valor }));
+      compositionPaisRaw = comp;
+      compositionPais = comp.map((r) => ({ produto: r.pais, ano: r.ano, valor: r.valor, kg: r.kg }));
       productsPais = dic;
-      compositionIndexPais = buildCompositionIndexes({
+      muniCompositionPaisRaw = {
         municipios: muniComp.municipios,
         produtos: muniComp.paises,
         cells: muniComp.cells
-      });
+      };
+      compositionIndexPais = buildCompositionIndexes(muniCompositionPaisRaw);
+      compositionPaisView = projetarMedida(compositionPais);
     }), () => { paisLoadPromise = null; });
     return paisLoadPromise;
   }
@@ -789,7 +899,10 @@
 
   function buildProductRankingIndex(data) {
     const byCode = new Map();
-    for (const [produtoIdx, municipioIdx, ano, valor] of data.cells) {
+    const pos = posMedida();
+    for (const cell of data.cells) {
+      const [produtoIdx, municipioIdx, ano] = cell;
+      const valor = cell[pos];
       const code = data.produtos[produtoIdx].code;
       const municipio = data.municipios[municipioIdx];
       if (!byCode.has(code)) byCode.set(code, []);
@@ -912,18 +1025,40 @@
   // unit needs to say which one is actually on screen, not just "US$"
   // unconditionally (the two are mutually exclusive — see the checkbox
   // handlers below — so only one of these three ever applies).
+  // Unidade da medida corrente, para preencher {unit} em título, subtítulo
+  // e rótulo de eixo. O Explorar tem a sua própria (exploreUnitLabel),
+  // porque lá escala log e indexação mudam a unidade de novo.
+  function unidadeMedida(t) {
+    return state.medida === "kg" ? t.unit_kg : t.unit_explore_dollar;
+  }
+
+  // Escolhe a variante "_kg" da chave quando a medida é quantidade, caindo
+  // na original quando ela não existe. Evita ter que espelhar manualmente
+  // cada ponto de uso: quem acrescentar uma string nova só precisa criar a
+  // chave `_kg` correspondente para ela acompanhar o botão.
+  function tMedida(chave) {
+    const t = I18N[state.lang];
+    if (state.medida === "kg" && t[chave + "_kg"]) return t[chave + "_kg"];
+    return t[chave];
+  }
+
+  function withUnit(s) {
+    return typeof s === "string" ? s.replace("{unit}", unidadeMedida(I18N[state.lang])) : s;
+  }
+
   function exploreUnitLabel(t) {
     if (state.exploreIndex) return t.unit_explore_index;
-    if (state.exploreLog) return t.unit_explore_log;
-    return t.unit_explore_dollar;
+    const base = unidadeMedida(t);
+    if (state.exploreLog) return state.medida === "kg" ? `log ${base}` : t.unit_explore_log;
+    return base;
   }
 
   function exploreSubtitleText(t) {
     const base = state.exploreOrientation === "pais"
-      ? t.subtitle_explore_paises
+      ? tMedida("subtitle_explore_paises")
       : state.exploreOrientation === "produto"
-      ? t.subtitle_explore_produtos
-      : (currentExploreFilterLabel() ? t.subtitle_explore_category : t.subtitle_explore);
+      ? tMedida("subtitle_explore_produtos")
+      : (currentExploreFilterLabel() ? tMedida("subtitle_explore_category") : tMedida("subtitle_explore"));
     return base.replace("{unit}", exploreUnitLabel(t));
   }
 
@@ -1561,6 +1696,7 @@
     state.changeScope = qChangeScope && totalsByMunicipio.has(qChangeScope) ? qChangeScope : null;
     const decodedMunis = qMunis ? qMunis.split("|").filter((m) => totalsByMunicipio.has(m)) : [];
     state.exploreMunis = decodedMunis.length ? decodedMunis : computeTrendMunicipalities(5);
+    state.medida = MEDIDAS.includes(params.get("medida")) ? params.get("medida") : "valor";
     state.exploreLog = qLog === "1";
     // Mutually exclusive (see the checkbox handlers below) — a hand-built
     // URL requesting both falls back to log, since that's the one most
@@ -1599,6 +1735,7 @@
     const params = new URLSearchParams();
     params.set("lang", state.lang);
     params.set("year", state.year);
+    params.set("medida", state.medida);
     params.set("view", state.view);
     params.set("state", state.uf || "");
     params.set("yeara", state.yearA);
@@ -1649,6 +1786,10 @@
     document.getElementById("year-sparkline").addEventListener("click", (e) => {
       jumpToYear(yearFromPointerEvent(e));
     });
+
+    document.getElementById("medida-valor").addEventListener("click", () => setMedida("valor"));
+    document.getElementById("medida-kg").addEventListener("click", () => setMedida("kg"));
+    aplicarMedida();
 
     document.getElementById("play-btn").addEventListener("click", togglePlay);
 
@@ -2041,6 +2182,40 @@
     });
   }
 
+  function setMedida(medida) {
+    if (!MEDIDAS.includes(medida) || medida === state.medida) return;
+    state.medida = medida;
+    // Reconstrói a partir do que já está em memória: sem fetch, sem
+    // esperar. Ver rebuildPorMedida.
+    rebuildPorMedida();
+    aplicarMedida();
+    updateUrl();
+    render();
+  }
+
+  function aplicarMedida() {
+    for (const m of MEDIDAS) {
+      const btn = document.getElementById(`medida-${m}`);
+      if (btn) btn.classList.toggle("active", state.medida === m);
+    }
+    // O aviso só aparece onde ele vale: somar quilos entre produtos
+    // diferentes compara peso, não relevância econômica. Nas telas
+    // orientadas por município a soma é de um lugar só, e aí não há
+    // ressalva a fazer.
+    const hint = document.getElementById("medida-hint");
+    if (hint) {
+      const orientacaoCategorica =
+        (state.view === "ranking" && state.rankingOrientation !== "municipio") ||
+        (state.view === "trends" && state.trendsOrientation !== "municipio") ||
+        (state.view === "change" && state.changeOrientation !== "municipio") ||
+        (state.view === "explore" && state.exploreOrientation !== "municipio") ||
+        state.view === "composition";
+      const mostrar = state.medida === "kg" && orientacaoCategorica;
+      hint.classList.toggle("hidden", !mostrar);
+      if (mostrar) hint.textContent = I18N[state.lang].medida_hint_produto;
+    }
+  }
+
   function setView(view) {
     stopPlaying();
     // A failed load in the view being left shouldn't pre-empt the one being
@@ -2280,8 +2455,8 @@
     document.getElementById("view-trends").textContent = t.view_trends;
     document.getElementById("view-explore").textContent = t.view_explore;
     document.getElementById("view-map").textContent = t.view_map;
-    document.getElementById("ranking-axis-label").textContent = t.ranking_axis_label;
-    document.getElementById("change-axis-label").textContent = t.change_axis_label;
+    document.getElementById("ranking-axis-label").textContent = withUnit(tMedida("ranking_axis_label"));
+    document.getElementById("change-axis-label").textContent = withUnit(tMedida("change_axis_label"));
     document.getElementById("label_uf_filter").textContent = t.label_uf_filter;
     document.getElementById("uf-filter-select").options[0].textContent = t.uf_all;
     document.getElementById("label_year_a").textContent = t.label_year_a;
@@ -2297,6 +2472,10 @@
     document.getElementById("label_explore_munis").textContent = t.label_explore_munis;
     document.getElementById("explore-hint").textContent = t.explore_hint;
     document.getElementById("explore-produtos-hint").textContent = t.explore_hint;
+    document.getElementById("label_medida").textContent = t.label_medida;
+    document.getElementById("medida-valor").textContent = t.medida_valor;
+    document.getElementById("medida-kg").textContent = t.medida_kg;
+    aplicarMedida();
     document.getElementById("label_log_scale").textContent = t.label_log_scale;
     document.getElementById("label_index_first").textContent = t.label_index_first;
     document.getElementById("explore-log").closest("label").title = state.exploreIndex ? t.explore_log_index_hint : "";
@@ -2429,17 +2608,17 @@
       map: t[`title_map_${state.mapMode}`]
     };
     const subtitles = {
-      ranking: state.rankingOrientation === "pais" ? t.subtitle_ranking_paises : (state.rankingOrientation === "produto" ? t.subtitle_ranking_produtos : t.subtitle_ranking),
+      ranking: state.rankingOrientation === "pais" ? tMedida("subtitle_ranking_paises") : (state.rankingOrientation === "produto" ? tMedida("subtitle_ranking_produtos") : tMedida("subtitle_ranking")),
       composition: state.compositionOrientation === "estado"
-        ? t.subtitle_composition_estado
-        : (state.compositionScope ? t.subtitle_composition_muni : t.subtitle_composition),
+        ? tMedida("subtitle_composition_estado")
+        : (state.compositionScope ? t.subtitle_composition_muni : tMedida("subtitle_composition")),
       change: state.changeOrientation === "pais" ? t.subtitle_change_paises : (state.changeOrientation === "produto" ? t.subtitle_change_produtos : t.subtitle_change),
       trends: state.trendsOrientation === "pais" ? t.subtitle_trends_paises : (state.trendsOrientation === "produto" ? t.subtitle_trends_produtos : (trendsFilterLabel ? t.subtitle_trends_category : t.subtitle_trends)),
       explore: exploreSubtitleText(t),
       map: t[`subtitle_map_${state.mapMode}`]
     };
     document.getElementById("plot-title").textContent = titles[state.view];
-    document.getElementById("plot-subtitle").textContent = withYearRange(subtitles[state.view]);
+    document.getElementById("plot-subtitle").textContent = withUnit(withYearRange(subtitles[state.view]));
 
     const slider = document.getElementById("year-slider");
     slider.value = state.year;
@@ -2647,7 +2826,7 @@
 
   // No region-wide or per-state SH4 total is shipped (product_ranking.json
   // only carries per-municipio rows — see
-  // data-raw/export_comex_exp_municipio_web.R), so "whole
+  // data-raw/web/export_comex_exp_municipio.R), so "whole
   // region" or "whole state" scope is summed client-side from the raw
   // cells instead, mirroring buildStateCompositionRows' same summing
   // approach for SEC/SH2. A specific município still goes through this
@@ -2748,7 +2927,7 @@
     const tooltip = document.getElementById(ids.tooltip);
     tooltip.innerHTML =
       "<strong>" + fullLabelFor(row) + "</strong><br>" +
-      "#" + (index + 1) + " · US$ " + fmtNumber(row.valor);
+      "#" + (index + 1) + " · " + fmtMedidaCheia(row.valor);
     tooltip.style.opacity = "1";
     moveRankTooltip(e, ids);
   }
@@ -2776,7 +2955,7 @@
   function buildCompositionSeries(rows, dict) {
     const totalByProduct = new Map();
     for (const r of rows) {
-      totalByProduct.set(r.produto, (totalByProduct.get(r.produto) || 0) + r.valor);
+      totalByProduct.set(r.produto, (totalByProduct.get(r.produto) || 0) + r[campoMedida()]);
     }
     const ranked = Array.from(totalByProduct.entries()).sort((a, b) => b[1] - a[1]);
     const topProducts = ranked.slice(0, 8).map(([produto]) => produto);
@@ -2791,9 +2970,9 @@
 
     for (const r of rows) {
       if (topSet.has(r.produto)) {
-        byProdYear.get(r.produto).set(r.ano, r.valor);
+        byProdYear.get(r.produto).set(r.ano, r[campoMedida()]);
       } else {
-        othersByYear.set(r.ano, (othersByYear.get(r.ano) || 0) + r.valor);
+        othersByYear.set(r.ano, (othersByYear.get(r.ano) || 0) + r[campoMedida()]);
       }
     }
 
@@ -2987,10 +3166,20 @@
     return compositionIndexSec;
   }
 
+  // Os arrays crus do JSON carregam as duas medidas ({produto, ano, valor,
+  // kg}), mas todo consumidor daqui lê `.valor`. Estas views projetam para
+  // a medida corrente, pela mesma razão que groupByYear projeta: normalizar
+  // na origem em vez de ensinar cada leitor sobre a troca.
   function compositionRowsFor(level) {
-    if (level === "pais") return compositionPais;
-    if (level === "sh2") return compositionSh2;
-    return compositionSec;
+    if (level === "pais") return compositionPaisView || [];
+    if (level === "sh2") return compositionSh2View || [];
+    return compositionSecView || [];
+  }
+
+  function projetarMedida(rows) {
+    if (!rows) return null;
+    const campo = campoMedida();
+    return rows.map((r) => ({ produto: r.produto, ano: r.ano, valor: r[campo] }));
   }
 
   // Níveis que chegam por fetch tardio. "sec" já vem no carregamento.
@@ -3367,8 +3556,8 @@
     const pct = r.valueA !== 0 ? (r.delta / Math.abs(r.valueA)) * 100 : null;
     tooltip.innerHTML =
       "<strong>" + fullLabelFor(r) + "</strong><br>" +
-      state.yearA + ": US$ " + fmtNumber(r.valueA) + "<br>" +
-      state.yearB + ": US$ " + fmtNumber(r.valueB) + "<br>" +
+      state.yearA + ": " + fmtMedidaCheia(r.valueA) + "<br>" +
+      state.yearB + ": " + fmtMedidaCheia(r.valueB) + "<br>" +
       (r.delta >= 0 ? "+" : "") + fmtNumber(r.delta) +
       (pct !== null ? " (" + (pct >= 0 ? "+" : "") + pct.toFixed(1) + "%)" : "");
     tooltip.style.opacity = "1";
@@ -4410,11 +4599,36 @@
   // being UI copy to translate.
   function fmtAbbrev(x) {
     if (x === null || x === undefined || Number.isNaN(x)) return "";
+    return state.medida === "kg" ? fmtAbbrevKg(x) : fmtAbbrevValor(x);
+  }
+
+  function fmtAbbrevValor(x) {
     const abs = Math.abs(x);
     const fmt1 = (v) => v.toLocaleString(numLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     if (abs >= 1e9) return "US$ " + fmt1(x / 1e9) + " bi";
     if (abs >= 1e6) return "US$ " + fmt1(x / 1e6) + " mi";
     if (abs >= 1e3) return "US$ " + fmt1(x / 1e3) + " mil";
     return "US$ " + fmtNumber(x);
+  }
+
+  // Quantidade vem em kg, mas a região exporta ~277 bilhões de kg por ano,
+  // então o número cru é ilegível. Sobe para toneladas a partir de mil kg,
+  // que é como o comércio exterior fala.
+  function fmtAbbrevKg(x) {
+    const abs = Math.abs(x);
+    const t = I18N[state.lang];
+    const fmt1 = (v) => v.toLocaleString(numLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    if (abs >= 1e9) return fmt1(x / 1e9) + " " + t.unit_mi_t;
+    if (abs >= 1e6) return fmt1(x / 1e6) + " " + t.unit_mil_t;
+    if (abs >= 1e3) return fmt1(x / 1e3) + " " + t.unit_t;
+    return fmtNumber(x) + " " + t.unit_kg;
+  }
+
+  // Valor por extenso, para tooltips que mostram o número cheio.
+  function fmtMedidaCheia(x) {
+    const t = I18N[state.lang];
+    return state.medida === "kg"
+      ? fmtNumber(x) + " " + t.unit_kg
+      : "US$ " + fmtNumber(x);
   }
 })();

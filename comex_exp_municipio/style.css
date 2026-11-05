@@ -64,7 +64,7 @@ html, body {
   margin-top: auto;
   padding-top: 24px;
   height: 64px;
-  background-image: url("img/logo_datazoom_branco_horizontal.png");
+  background-image: url("../shared/img/logo_datazoom_branco_horizontal.png");
   background-repeat: no-repeat;
   background-position: left bottom;
   background-size: contain;
@@ -101,6 +101,9 @@ html, body {
   gap: 6px;
   width: 100%;
 }
+/* Variante de duas colunas, para alternâncias binárias como Valor/Quantidade.
+   Sem isto os dois botões ficariam com 1/3 da largura cada e um vão à direita. */
+.view-toggle-2 { grid-template-columns: repeat(2, 1fr); }
 .view-btn {
   border: none;
   border-radius: 6px;
