@@ -286,12 +286,18 @@
 
     // NOTE: the original app uses CartoDB.PositronNoLabels (no-label light
     // basemap), but Carto retired free anonymous raster tile access — that
-    // style now needs an API key. Esri's World_Light_Gray_Base is the
-    // closest free, no-key equivalent: light, minimal roads, no labels
-    // fighting the choropleth for attention (stock OSM tiles are far busier).
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
-      attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+    // style now needs an API key.
+    //
+    // Esri.WorldShadedRelief, o padrão que os mapas do repositório adotaram
+    // em nov/2026, no lugar do World_Light_Gray_Base que era cinza e
+    // achatado. O relevo dá contexto geográfico sem rótulos competindo com
+    // o coroplético.
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Tiles &copy; Esri",
       maxZoom: 16,
+      // O serviço só declara tiles até o nível 13; isto faz o Leaflet
+      // ampliar o último disponível em vez de pedir um que pode faltar.
+      maxNativeZoom: 13,
       // Esri's tile server sends Access-Control-Allow-Origin: * — this asks
       // the browser to actually fetch tiles in CORS mode instead of the
       // default opaque cross-origin request, which is what lets
@@ -1232,7 +1238,10 @@
         // seam instead of trying to eliminate anti-aliasing itself.
         stroke: true,
         weight: 1,
-        fillOpacity: 0.9,
+        // 1, não 0.9: sobre o relevo sombreado qualquer transparência
+        // mistura a cor da classe com o terreno e a legenda deixa de
+        // corresponder ao que está na tela.
+        fillOpacity: 1,
         fillColor: "#cccccc", // placeholder; the first color update repaints before this ever renders a frame
         color: "#cccccc"
       }),
@@ -1255,7 +1264,7 @@
           // whatever the last color update set (setStyle merges options).
           // color (the seam-hiding stroke) does need restoring here, since
           // mouseover just overwrote it with the highlight's black.
-          layer.setStyle({ weight: 1, opacity: 1, fillOpacity: 0.9, color: strokeColorFor(layer.options.fillColor) });
+          layer.setStyle({ weight: 1, opacity: 1, fillOpacity: 1, color: strokeColorFor(layer.options.fillColor) });
         });
       }
     }).addTo(map);

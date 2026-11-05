@@ -556,7 +556,10 @@
   const MAP_NODATA_LINE = "#a2adb1";
   const MAP_OUTOFSTATE_FILL = "#e3e7e9";
   const MAP_OUTOFSTATE_OPACITY = 0.35;
-  const MAP_INSTATE_OPACITY = 0.9;
+  // 1, não 0.9: sobre o relevo sombreado qualquer transparência mistura a
+  // cor da categoria com o terreno e a legenda deixa de corresponder ao
+  // que está na tela.
+  const MAP_INSTATE_OPACITY = 1;
   const MAP_RATIO_COLORS = { same: "#666666", nao: "#D55E00", sim: "#009E73" };
 
   let sparkSeries = [];
@@ -1394,9 +1397,17 @@
   function initLeafletMap(municGeo, statesGeo, legalAmazonGeo) {
     leafletMap = L.map("map-container", { zoomControl: true }).setView([-7, -58], 5);
 
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
-      attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
-      maxZoom: 16
+    // Esri.WorldShadedRelief, o mesmo basemap que os mapas Shiny adotaram
+    // em nov/2026. Substitui o World_Light_Gray_Base, que era cinza e
+    // achatado. O relevo dá contexto geográfico ao coroplético.
+    //
+    // maxNativeZoom: o serviço só declara tiles até o nível 13, então o
+    // Leaflet amplia o último disponível em vez de pedir um que pode não
+    // existir. Sem isto, quem desse zoom além de 13 veria o mapa em branco.
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Tiles &copy; Esri",
+      maxZoom: 16,
+      maxNativeZoom: 13
     }).addTo(leafletMap);
 
     leafletMap.createPane("paneMain");
@@ -1437,7 +1448,7 @@
         className: "muni-path",
         stroke: true,
         weight: 1,
-        fillOpacity: 0.9,
+        fillOpacity: 1,
         fillColor: "#cccccc",
         color: "#cccccc"
       }),
