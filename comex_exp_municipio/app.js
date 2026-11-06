@@ -418,6 +418,17 @@
   function lerEmbedDaUrl() {
     state.embed = new URLSearchParams(location.search).get("embed") === "1";
     document.documentElement.classList.toggle("embed", state.embed);
+    if (state.embed) carregarFonteDoSite();
+  }
+
+  // A Inter só é buscada em modo embutido, para o app sozinho não pagar por
+  // uma fonte que não usa. Na prática costuma ser cache: a página de fora
+  // pediu a mesma fonte, do mesmo CDN, antes de montar o iframe.
+  function carregarFonteDoSite() {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap";
+    document.head.appendChild(link);
   }
 
   function lerMedidaDaUrl() {

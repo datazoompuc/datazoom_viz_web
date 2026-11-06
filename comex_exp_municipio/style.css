@@ -1,6 +1,8 @@
 * { box-sizing: border-box; }
 
 :root {
+  --font-ui: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --ink: #221d17;
   --muted: #6b6156;
   --border: #e4ded3;
@@ -14,7 +16,7 @@
 html, body {
   margin: 0;
   height: 100%;
-  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1rem;
   color: var(--ink);
 }
@@ -42,7 +44,7 @@ html, body {
   box-shadow: 0 2px 10px var(--shadow);
   font-size: 0.82rem;
   font-weight: 600;
-  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-ui);
   cursor: pointer;
 }
 .lang-toggle-corner svg { display: block; }
@@ -75,7 +77,7 @@ html, body {
 
 .plot_name {
   margin: 0 0 4px;
-  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-display);
   font-size: 1.4rem;
   font-weight: 400;
   text-transform: uppercase;
@@ -114,7 +116,7 @@ html, body {
   font-weight: 600;
   line-height: 1.2;
   cursor: pointer;
-  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-ui);
 }
 .view-btn.active {
   background: rgba(0, 0, 0, 0.2);
@@ -152,7 +154,7 @@ html, body {
   font-size: 1rem;
   background: #fff;
   color: var(--ink);
-  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-ui);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -486,7 +488,7 @@ html, body {
 }
 
 .plot-title {
-  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 400;
   text-transform: uppercase;
@@ -575,7 +577,7 @@ html, body {
   height: 30px;
 }
 .rank-position {
-  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-display);
   font-size: 0.78rem;
   color: var(--muted);
   text-align: right;
@@ -655,7 +657,7 @@ html, body {
 }
 
 .comp-axis-label {
-  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-ui);
   font-size: 11px;
   fill: var(--muted);
 }
@@ -949,6 +951,34 @@ html, body {
 
 
 /* ---- Modo embutido (?embed=1) ---- */
+/*
+   Tipografia do site hospedeiro. A página usa Inter em tudo; o app usa Source
+   Sans Pro com JetBrains Mono nos títulos. Dentro do iframe essa diferença
+   lê como "dois sites colados", então em modo embutido o app adota a fonte
+   da página. Sozinho, mantém a identidade própria.
+
+   O `lerEmbedDaUrl` em app.js carrega a Inter — o navegador costuma já ter a
+   fonte em cache, porque a página de fora pediu a mesma do mesmo CDN.
+*/
+.embed {
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* Sem a monoespaçada, o título caixa-alta com espaçamento negativo vira um
+   corpo estranho. Em Inter ele funciona melhor como subtítulo da página:
+   caixa normal, peso 600, que é o mesmo do h1 do site. */
+.embed .plot-title {
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: normal;
+  font-size: 1.35rem;
+}
+
+/* A numeração do ranking dependia da monoespaçada para alinhar. */
+.embed .rank-position { font-variant-numeric: tabular-nums; }
+
+
 /*
    Esconde o que a página hospedeira já mostra: a marca e a descrição (ela tem
    nav bar e um h1), a logo do rodapé da barra lateral (ela tem logo na nav bar
