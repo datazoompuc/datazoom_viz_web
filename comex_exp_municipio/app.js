@@ -380,14 +380,16 @@
     totalsByYear = groupByYear(municipalityTotals);
     regionTotalByYear = new Map(regionTotals.map((r) => [r.ano, r[campoMedida()]]));
     ({ totalsByMunicipio, municipioMeta, ufList } = buildMunicipioIndex(municipalityTotals));
-    compositionSeriesSec = buildCompositionSeries(compositionSec, dictionary);
-    compositionIndexSec = buildCompositionIndexes(muniCompositionSec);
+    // A view vem antes da série: buildCompositionSeries consome linhas já
+    // projetadas, não as cruas.
     compositionSecView = projetarMedida(compositionSec);
+    compositionSeriesSec = buildCompositionSeries(compositionSecView, dictionary);
+    compositionIndexSec = buildCompositionIndexes(muniCompositionSec);
 
     if (compositionSh2) {
-      compositionSeriesSh2 = buildCompositionSeries(compositionSh2, dictionary);
-      compositionIndexSh2 = buildCompositionIndexes(muniCompositionSh2);
       compositionSh2View = projetarMedida(compositionSh2);
+      compositionSeriesSh2 = buildCompositionSeries(compositionSh2View, dictionary);
+      compositionIndexSh2 = buildCompositionIndexes(muniCompositionSh2);
     }
     if (compositionPaisRaw) {
       compositionPais = compositionPaisRaw.map((r) => ({ produto: r.pais, ano: r.ano, valor: r.valor, kg: r.kg }));
@@ -825,9 +827,9 @@
       compositionSh2 = comp;
       muniCompositionSh2 = muniComp;
       productsSh2 = prod;
-      compositionSeriesSh2 = buildCompositionSeries(compositionSh2, dictionary);
-      compositionIndexSh2 = buildCompositionIndexes(muniCompositionSh2);
       compositionSh2View = projetarMedida(compositionSh2);
+      compositionSeriesSh2 = buildCompositionSeries(compositionSh2View, dictionary);
+      compositionIndexSh2 = buildCompositionIndexes(muniCompositionSh2);
     }), () => { sh2LoadPromise = null; });
     return sh2LoadPromise;
   }
@@ -3003,10 +3005,22 @@
   const COMP_PAD_L = 60, COMP_PAD_R = 16, COMP_PAD_T = 12, COMP_PAD_B = 28;
   const COMP_VB_W = 1000, COMP_VB_H = 520;
 
+  // Espera linhas JÁ PROJETADAS na medida corrente, isto é, com a medida em
+  // `.valor`, seja ela dólar ou quilo. É a mesma convenção de
+  // compositionRowsFor() e de groupByYear: projetar na origem, e todo
+  // consumidor lê um campo só.
+  //
+  // Isto já leu `r[campoMedida()]`, o que parecia mais explícito e era pior.
+  // Três dos cinco chamadores entregam linhas que passaram por
+  // projetarMedida() ou por buildCompositionIndexes(), e essas só têm
+  // `.valor`. Pedir `.kg` delas devolvia undefined, as somas viravam NaN e o
+  // gráfico sumia com o eixo caindo no domínio padrão. Em valor nada
+  // aparecia, porque aí campoMedida() devolve "valor" e acerta o campo
+  // projetado por acidente.
   function buildCompositionSeries(rows, dict) {
     const totalByProduct = new Map();
     for (const r of rows) {
-      totalByProduct.set(r.produto, (totalByProduct.get(r.produto) || 0) + r[campoMedida()]);
+      totalByProduct.set(r.produto, (totalByProduct.get(r.produto) || 0) + r.valor);
     }
     const ranked = Array.from(totalByProduct.entries()).sort((a, b) => b[1] - a[1]);
     const topProducts = ranked.slice(0, 8).map(([produto]) => produto);
@@ -3021,9 +3035,9 @@
 
     for (const r of rows) {
       if (topSet.has(r.produto)) {
-        byProdYear.get(r.produto).set(r.ano, r[campoMedida()]);
+        byProdYear.get(r.produto).set(r.ano, r.valor);
       } else {
-        othersByYear.set(r.ano, (othersByYear.get(r.ano) || 0) + r[campoMedida()]);
+        othersByYear.set(r.ano, (othersByYear.get(r.ano) || 0) + r.valor);
       }
     }
 
