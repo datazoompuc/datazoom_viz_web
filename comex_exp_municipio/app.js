@@ -79,6 +79,7 @@
       unit_explore_index: "índice, ano inicial = 100",
       label_log_scale: "Escala logarítmica",
       label_index_first: "Indexado ao ano inicial (=100)",
+      label_fonte: "Fonte: ",
       explore_log_index_hint: "Não é possível combinar escala logarítmica com indexação — desmarque uma para usar a outra",
       explore_no_base: "sem exportação em {year}",
       title_composition_muni: "Composição das exportações — {municipio}",
@@ -240,6 +241,7 @@
       unit_explore_index: "index, first year = 100",
       label_log_scale: "Log scale",
       label_index_first: "Indexed to first year (=100)",
+      label_fonte: "Source: ",
       explore_log_index_hint: "Log scale can't be combined with indexing — uncheck one to use the other",
       explore_no_base: "no exports in {year}",
       title_composition_muni: "Export composition — {municipio}",
@@ -2522,6 +2524,11 @@
     aplicarMedida();
     document.getElementById("label_log_scale").textContent = t.label_log_scale;
     document.getElementById("label_index_first").textContent = t.label_index_first;
+    document.getElementById("label_fonte").textContent = t.label_fonte;
+    // O período sai do dicionário, não de uma constante: quando a base
+    // ganhar um ano novo o rodapé acompanha sem ninguém editar nada aqui.
+    document.getElementById("label_fonte_periodo").textContent =
+      ` · ${dictionary.year_inicio}–${dictionary.year_final}`;
     document.getElementById("explore-log").closest("label").title = state.exploreIndex ? t.explore_log_index_hint : "";
     document.getElementById("explore-index").closest("label").title = state.exploreLog ? t.explore_log_index_hint : "";
     document.getElementById("label_composition_scope").textContent = t.label_composition_scope;

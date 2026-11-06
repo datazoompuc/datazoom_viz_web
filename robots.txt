@@ -1,0 +1,14 @@
+# Este site e um espelho de pre-visualizacao do datazoompuc/datazoom_viz.
+# Ele existe so para a PR da pagina do site apontar para algum lugar que
+# responda enquanto o Pages do repo principal nao sobe.
+#
+# Nao deve ser indexado: e o mesmo app que vai ficar em
+# datazoom.com.br/datazoom_viz, e duas copias do mesmo conteudo disputando
+# a busca prejudicam a de verdade. Pior, o indice sobrevive ao repo, entao
+# o espelho continuaria aparecendo depois de aposentado.
+#
+# Este arquivo mora so aqui, na raiz do espelho, e nao em web/ do repo
+# principal: se fosse sincronizado junto, producao herdaria o noindex.
+# Mesma razao do .nojekyll e do README.md.
+User-agent: *
+Disallow: /

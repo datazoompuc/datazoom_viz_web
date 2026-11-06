@@ -62,9 +62,32 @@ html, body {
   flex-direction: column;
 }
 
-.menucol-logo {
-  margin-top: auto;
+/* Procedência, e a âncora visual da base da barra lateral.
+ *
+ * O `margin-top: auto` mora aqui, e não no logo, porque esta é a primeira
+ * das duas peças de rodapé: o auto empurra o par todo para baixo. Dois
+ * `auto` na mesma coluna repartiriam a sobra em vez de somar.
+ *
+ * É também o que impede a barra de terminar em gradiente vazio no modo
+ * embutido, onde o logo sai de cena porque a página de fora já tem um.
+ */
+.menucol-fonte {
+  margin: auto 0 0;
   padding-top: 24px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.72);
+  flex: 0 0 auto;
+}
+.menucol-fonte a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.menucol-fonte a:hover { color: #fff; }
+
+.menucol-logo {
+  padding-top: 14px;
   height: 64px;
   background-image: url("../shared/img/logo_datazoom_branco_horizontal.png");
   background-repeat: no-repeat;
