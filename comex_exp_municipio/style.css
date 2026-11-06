@@ -946,3 +946,24 @@ html, body {
 }
 
 .hidden { display: none; }
+
+
+/* ---- Modo embutido (?embed=1) ---- */
+/*
+   Esconde o que a página hospedeira já mostra: a marca e a descrição (ela tem
+   nav bar e um h1), a logo do rodapé da barra lateral (ela tem logo na nav bar
+   e no footer) e o seletor de idioma (quem manda ali é a nav bar, que troca a
+   página inteira — o do app trocaria só o iframe).
+
+   Ver lerEmbedDaUrl em app.js. Aberto na própria URL, o app continua completo.
+*/
+.embed .plot_name,
+.embed .plot_desc,
+.embed .menucol > hr,
+.embed .menucol-logo,
+.embed .lang-toggle-corner { display: none; }
+
+/* O padding à direita existia para o título não passar por baixo do seletor
+   de idioma. Sem ele, é espaço morto. */
+.embed .plot-title,
+.embed .plot-subtitle { padding-right: 0; }
